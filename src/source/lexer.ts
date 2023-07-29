@@ -3,6 +3,7 @@ import {Source} from "./source.js";
 import {Diagnostics} from "../common/diagnostics.js";
 import './syntax/keywords.js'
 import {SyntaxKind} from "./syntax/syntax.kind.js";
+import {KeywordsByName} from "./syntax/keywords.js";
 
 function isLetter(c: string) {
   return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
@@ -17,32 +18,7 @@ function isWhitespace(c: string) {
 }
 
 export function getKeywordKind(value: string) {
-  switch (value) {
-    case 'echo':
-      return SyntaxKind.EchoKeyword;
-    case 'break':
-      return SyntaxKind.BreakKeyword;
-    case 'const':
-      return SyntaxKind.ConstKeyword;
-    case 'continue':
-      return SyntaxKind.ContinueKeyword;
-    case 'else':
-      return SyntaxKind.ElseKeyword;
-    case 'false':
-      return SyntaxKind.FalseKeyword;
-    case 'for':
-      return SyntaxKind.ForKeyword;
-    case 'if':
-      return SyntaxKind.IfKeyword;
-    case 'return':
-      return SyntaxKind.ReturnKeyword;
-    case 'true':
-      return SyntaxKind.TrueKeyword;
-    case 'while':
-      return SyntaxKind.WhileKeyword;
-    default:
-      return SyntaxKind.IdentifierToken
-  }
+  return KeywordsByName[value] ?? SyntaxKind.IdentifierToken;
 }
 
 const cacheToken = new WeakMap<SyntaxToken, TextSpan>()
