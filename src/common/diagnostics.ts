@@ -1,6 +1,6 @@
-import {SyntaxKind} from "../source/lexer.js";
 import {TextSpan} from "./text-span.js";
 import {TypeSymbol} from "../symbols/symbols.js";
+import {SyntaxKind} from "../source/syntax.kind.js";
 
 
 export class Diagnostics {

@@ -1,4 +1,4 @@
-import {SyntaxKind} from "./lexer.js";
+import {SyntaxKind} from "./syntax.kind.js";
 
 const enum PrecedenceKind {
   None,
@@ -77,37 +77,6 @@ export function getBinaryOperatorPrecedence(kind: SyntaxKind) {
 
     default:
       return PrecedenceKind.None;
-  }
-}
-
-export function getKeywordKind(value: string) {
-  switch (value) {
-    case 'break':
-      return SyntaxKind.BreakKeyword;
-    case 'const':
-      return SyntaxKind.ConstKeyword;
-    case 'continue':
-      return SyntaxKind.ContinueKeyword;
-    case 'else':
-      return SyntaxKind.ElseKeyword;
-    case 'false':
-      return SyntaxKind.FalseKeyword;
-    case 'for':
-      return SyntaxKind.ForKeyword;
-    case 'if':
-      return SyntaxKind.IfKeyword;
-    case 'let':
-      return SyntaxKind.LetKeyword;
-    case 'method':
-      return SyntaxKind.MethodKeyword;
-    case 'return':
-      return SyntaxKind.ReturnKeyword;
-    case 'true':
-      return SyntaxKind.TrueKeyword;
-    case 'while':
-      return SyntaxKind.WhileKeyword;
-    default:
-      return SyntaxKind.IdentifierToken
   }
 }
 

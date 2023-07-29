@@ -1,4 +1,3 @@
-import {SyntaxKind} from "../source/lexer.js";
 import {BoundFile} from "../binder/bound-special.js";
 import {
   BoundBlockStatement,
@@ -18,6 +17,7 @@ import {
   BoundExpression, BoundLiteralExpression, BoundNameExpression, BoundUnaryExpression, BoundVariableExpression
 } from "../binder/bound-expression.js";
 import {BoundKind, BoundNode} from "../binder/bound.node.js";
+import {SyntaxKind} from "../source/syntax.kind.js";
 
 export abstract class ToSource {
   abstract toSourceFileStatement(node: BoundFile): string;

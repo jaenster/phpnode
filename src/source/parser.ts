@@ -1,5 +1,5 @@
 import {Source} from "./source.js";
-import {SyntaxKind, SyntaxToken} from "./lexer.js";
+import {SyntaxToken} from "./lexer.js";
 import {Diagnostics} from "../common/diagnostics.js";
 import {
   BlockStatementSyntax,
@@ -23,6 +23,7 @@ import {
   supportsOnlyNameExpression
 } from "./syntax.facts.js";
 import {TypeSymbol} from "../symbols/symbols.js";
+import {SyntaxKind} from "./syntax.kind.js";
 
 
 export class Parser {
@@ -57,8 +58,6 @@ export class Parser {
         return this.parseBreakStatement()
       case SyntaxKind.ContinueKeyword:
         return this.parseContinueStatement()
-      case SyntaxKind.MethodKeyword:
-        return this.parseMethod();
       case SyntaxKind.ReturnKeyword:
         return this.parseReturnStatement();
       case SyntaxKind.EchoKeyword:
@@ -426,25 +425,6 @@ export class Parser {
     }
     this.match(SyntaxKind.ParenRToken);
     return parameters;
-  }
-
-  parseMethod(): MethodStatementSyntax {
-    const keyword = this.match(SyntaxKind.MethodKeyword);
-    const identifier = this.match(SyntaxKind.IdentifierToken);
-    const parameters = this.parseParameters();
-    // return type
-    const type = this.parseOptionalTypeClause()
-    const body = this.parseBlockStatement();
-
-    return createStatementNode({
-      kind: SyntaxNodeKind.MethodStatementSyntax,
-      body,
-      type,
-      identifier,
-      keyword,
-      parameters,
-      modifiers: []
-    })
   }
 
   parseOptionalTypeClause(): TypeClause | undefined {

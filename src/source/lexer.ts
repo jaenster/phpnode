@@ -1,6 +1,8 @@
 import {TextSpan} from "../common/text-span.js";
 import {Source} from "./source.js";
 import {Diagnostics} from "../common/diagnostics.js";
+import './keywords.js'
+import {SyntaxKind} from "./syntax.kind.js";
 
 function isLetter(c: string) {
   return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
@@ -12,70 +14,6 @@ function isDigit(c: string) {
 
 function isWhitespace(c: string) {
   return c === '\t' || c === '\r' || c === '\n' || c === ' ';
-}
-
-export enum SyntaxKind {
-  EOF,
-  // Everything outside the <?php tags
-  RawToken,
-  PhpOpenToken,
-
-  // Literals
-  AmpersandAmpersandToken,
-  AmpersandToken,
-  ExclamationEqualToken,
-  ExclamationToken,
-  QuestionToken,
-  BraceLToken,
-  BraceRToken,
-  ColonColonToken,
-  ColonToken,
-  CommaToken,
-  EqualEqualToken,
-  EqualToken,
-  GreaterEqualToken,
-  GreaterToken,
-  HatToken,
-  LessEqualToken,
-  LessToken,
-  MinusMinusToken,
-  MinusToken,
-  ParenLToken,
-  ParenRToken,
-  PipePipeToken,
-  PipeToken,
-  PlusPlusToken,
-  PlusToken,
-  SlashToken,
-  StarToken,
-  TildeToken,
-  DotToken,
-  SemiColonToken,
-  DollarToken,
-  AtToken,
-
-
-  // Virtual
-  IdentifierToken,
-  WhitespaceToken,
-  NumberToken,
-  StringToken,
-
-  // Keywords
-  BreakKeyword,
-  ConstKeyword,
-  ContinueKeyword,
-  ElseKeyword,
-  EchoKeyword,
-  FalseKeyword,
-  ForKeyword,
-  IfKeyword,
-  LetKeyword,
-  MethodKeyword,
-  ReturnKeyword,
-  TrueKeyword,
-  WhileKeyword,
-
 }
 
 export function getKeywordKind(value: string) {
@@ -96,10 +34,6 @@ export function getKeywordKind(value: string) {
       return SyntaxKind.ForKeyword;
     case 'if':
       return SyntaxKind.IfKeyword;
-    case 'let':
-      return SyntaxKind.LetKeyword;
-    case 'method':
-      return SyntaxKind.MethodKeyword;
     case 'return':
       return SyntaxKind.ReturnKeyword;
     case 'true':

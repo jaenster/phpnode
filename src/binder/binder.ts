@@ -18,7 +18,6 @@ import {BoundKind, createBoundExpression, createBoundSpecial, createBoundStateme
 import {ElseClause, FileSyntax, ParametersSyntax} from "../source/special.syntax.js";
 import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {MapExt} from "map-ext";
-import {SyntaxKind} from "../source/lexer.js";
 import {
   AssignmentExpressionSyntax,
   BinaryExpressionSyntax,
@@ -28,6 +27,7 @@ import {
 import {BoundExpression} from "./bound-expression.js";
 import {BoundBinaryOperator, BoundUnaryOperator} from "./bound-operator.js";
 import {TextSpan} from "../common/text-span.js";
+import {SyntaxKind} from "../source/syntax.kind.js";
 
 export class Binder {
   private currentLoop: Array<Omit<BoundBodyStatement, 'statement'>> = [];

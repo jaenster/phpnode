@@ -26,61 +26,10 @@ import {
   BoundVariableStatement,
   BoundWhileStatement
 } from "../binder/bound-statement.js";
-import {SyntaxKind} from "../source/lexer.js";
 import {ToSource} from "./to-source.js";
-import {BoundKind} from "../binder/bound.node.js";
 import {BoundBinaryOperator} from "../binder/bound-operator.js";
-
-export const TokenMap = {
-  // Literals
-  [SyntaxKind.AmpersandAmpersandToken]: '&&',
-  [SyntaxKind.AmpersandToken]: '&',
-  [SyntaxKind.ExclamationEqualToken]: '!=',
-  [SyntaxKind.ExclamationToken]: '!',
-  [SyntaxKind.QuestionToken]: '?',
-  [SyntaxKind.BraceLToken]: '{',
-  [SyntaxKind.BraceRToken]: '}',
-  [SyntaxKind.ColonColonToken]: '::',
-  [SyntaxKind.ColonToken]: ':',
-  [SyntaxKind.CommaToken]: ',',
-  [SyntaxKind.EqualEqualToken]: '==',
-  [SyntaxKind.EqualToken]: '=',
-  [SyntaxKind.GreaterEqualToken]: '>=',
-  [SyntaxKind.GreaterToken]: '>',
-  [SyntaxKind.HatToken]: '^',
-  [SyntaxKind.LessEqualToken]: '<=',
-  [SyntaxKind.LessToken]: '<',
-  [SyntaxKind.MinusMinusToken]: '--',
-  [SyntaxKind.MinusToken]: '-',
-  [SyntaxKind.ParenLToken]: '(',
-  [SyntaxKind.ParenRToken]: ')',
-  [SyntaxKind.PipePipeToken]: '||',
-  [SyntaxKind.PipeToken]: '|',
-  [SyntaxKind.PlusPlusToken]: '++',
-  [SyntaxKind.PlusToken]: '+',
-  [SyntaxKind.SlashToken]: '/',
-  [SyntaxKind.StarToken]: '*',
-  [SyntaxKind.TildeToken]: '~',
-  [SyntaxKind.DotToken]: '.',
-  [SyntaxKind.SemiColonToken]: ';',
-  [SyntaxKind.DollarToken]: '$',
-  [SyntaxKind.AtToken]: '@',
-
-  // Keywords
-  [SyntaxKind.BreakKeyword]: 'break',
-  [SyntaxKind.ConstKeyword]: 'const',
-  [SyntaxKind.ContinueKeyword]: 'continue',
-  [SyntaxKind.ElseKeyword]: 'else',
-  [SyntaxKind.FalseKeyword]: 'false',
-  [SyntaxKind.ForKeyword]: 'for',
-  [SyntaxKind.IfKeyword]: 'if',
-  [SyntaxKind.LetKeyword]: 'let',
-  [SyntaxKind.MethodKeyword]: 'method',
-  [SyntaxKind.ReturnKeyword]: 'return',
-  [SyntaxKind.TrueKeyword]: 'true',
-  [SyntaxKind.WhileKeyword]: 'while',
-}
-
+import {KeywordsBySyntax} from "../source/keywords.js";
+import {SyntaxKind} from "../source/syntax.kind.js";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);
@@ -113,7 +62,7 @@ export default __php__file("${escape(node.filename)})", async () => {`
       return 'await '+left+"("+right+")";
     }
 
-    return left +TokenMap[node.operator.syntaxKind]+right;
+    return left +KeywordsBySyntax[node.operator.syntaxKind]+right;
   }
 
   toSourceBlockStatement(node: BoundBlockStatement): string {
