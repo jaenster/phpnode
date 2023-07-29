@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "target": "es2020",
+    "sourceMap": true,
+  },
+  "exclude": [
+    "node_modules"
+  ],
+  "ts-node": {
+    "esm": true
+  },
+}
