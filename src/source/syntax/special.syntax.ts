@@ -1,6 +1,6 @@
 import type {StatementSyntax} from "./statement.syntax.js";
 import {SyntaxNodeKind} from "./syntax.node.js";
-import {SyntaxToken} from "./lexer.js";
+import {SyntaxToken} from "../lexer.js";
 
 export type SpecialSyntax =
   | FileSyntax

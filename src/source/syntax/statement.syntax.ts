@@ -1,6 +1,6 @@
 import type {ElseClause, ParametersSyntax, TypeClause} from "./special.syntax.js";
 import type {ExpressionSyntax} from "./expression.syntax.js";
-import {SyntaxToken} from "./lexer.js";
+import {SyntaxToken} from "../lexer.js";
 import {SyntaxNodeKind} from "./syntax.node.js";
 
 export type StatementSyntax =

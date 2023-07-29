@@ -17,7 +17,7 @@ import {
   BoundExpression, BoundLiteralExpression, BoundNameExpression, BoundUnaryExpression, BoundVariableExpression
 } from "../binder/bound-expression.js";
 import {BoundKind, BoundNode} from "../binder/bound.node.js";
-import {SyntaxKind} from "../source/syntax.kind.js";
+import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 
 export abstract class ToSource {
   abstract toSourceFileStatement(node: BoundFile): string;

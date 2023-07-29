@@ -1,8 +1,8 @@
 
-import type {TypeSymbol} from "../symbols/symbols.js";
+import type {TypeSymbol} from "../../symbols/symbols.js";
 import type {SyntaxNodeKind} from "./syntax.node.js";
 import {SyntaxNode} from "./syntax.node.js";
-import {SyntaxToken} from "./lexer.js";
+import {SyntaxToken} from "../lexer.js";
 
 
 export type ExpressionSyntax = (

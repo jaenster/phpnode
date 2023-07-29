@@ -1,8 +1,8 @@
 import {TextSpan} from "../common/text-span.js";
 import {Source} from "./source.js";
 import {Diagnostics} from "../common/diagnostics.js";
-import './keywords.js'
-import {SyntaxKind} from "./syntax.kind.js";
+import './syntax/keywords.js'
+import {SyntaxKind} from "./syntax/syntax.kind.js";
 
 function isLetter(c: string) {
   return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';

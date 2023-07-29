@@ -1,6 +1,6 @@
 import {TextSpan} from "./text-span.js";
 import {TypeSymbol} from "../symbols/symbols.js";
-import {SyntaxKind} from "../source/syntax.kind.js";
+import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 
 
 export class Diagnostics {

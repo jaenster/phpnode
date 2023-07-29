@@ -1,7 +1,7 @@
 import {ExpressionSyntax} from "./expression.syntax.js";
 import {StatementSyntax} from "./statement.syntax.js";
 import {SpecialSyntax} from "./special.syntax.js";
-import {TextSpan} from "../common/text-span.js";
+import {TextSpan} from "../../common/text-span.js";
 
 
 export enum SyntaxNodeKind {

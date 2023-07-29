@@ -1,6 +1,6 @@
 import {TypeSymbol} from "../symbols/symbols.js";
 import {BoundExpression} from "./bound-expression.js";
-import {SyntaxKind} from "../source/syntax.kind.js";
+import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 
 export enum BoundBinaryOperatorKind {
   Addition,

@@ -12,10 +12,10 @@ import {
   ExpressionStatementSyntax,
   ForStatementSyntax, IfStatementSyntax, MethodStatementSyntax, SemiColonSyntax,
   StatementSyntax, VariableStatementSyntax, WhileStatementSyntax
-} from "../source/statement.syntax.js";
-import {SyntaxNodeKind} from "../source/syntax.node.js";
+} from "../source/syntax/statement.syntax.js";
+import {SyntaxNodeKind} from "../source/syntax/syntax.node.js";
 import {BoundKind, createBoundExpression, createBoundSpecial, createBoundStatement} from "./bound.node.js";
-import {ElseClause, FileSyntax, ParametersSyntax} from "../source/special.syntax.js";
+import {ElseClause, FileSyntax, ParametersSyntax} from "../source/syntax/special.syntax.js";
 import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {MapExt} from "map-ext";
 import {
@@ -23,11 +23,11 @@ import {
   BinaryExpressionSyntax,
   CommaExpressionSyntax, EmptyExpressionSyntax,
   ExpressionSyntax, LiteralExpressionSyntax, NameExpressionSyntax, ParenExpressionSyntax, UnaryExpressionSyntax
-} from "../source/expression.syntax.js";
+} from "../source/syntax/expression.syntax.js";
 import {BoundExpression} from "./bound-expression.js";
 import {BoundBinaryOperator, BoundUnaryOperator} from "./bound-operator.js";
 import {TextSpan} from "../common/text-span.js";
-import {SyntaxKind} from "../source/syntax.kind.js";
+import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 
 export class Binder {
   private currentLoop: Array<Omit<BoundBodyStatement, 'statement'>> = [];

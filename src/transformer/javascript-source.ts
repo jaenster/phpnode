@@ -28,8 +28,8 @@ import {
 } from "../binder/bound-statement.js";
 import {ToSource} from "./to-source.js";
 import {BoundBinaryOperator} from "../binder/bound-operator.js";
-import {KeywordsBySyntax} from "../source/keywords.js";
-import {SyntaxKind} from "../source/syntax.kind.js";
+import {KeywordsBySyntax} from "../source/syntax/keywords.js";
+import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);

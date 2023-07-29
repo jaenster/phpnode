@@ -6,24 +6,24 @@ import {
   ExpressionStatementSyntax, MethodStatementSyntax,
   StatementSyntax,
   VariableStatementSyntax
-} from "./statement.syntax.js";
+} from "./syntax/statement.syntax.js";
 import {
   createExpressionNode,
   createSpecialNode,
   createStatementNode,
   SyntaxNode,
   SyntaxNodeKind
-} from "./syntax.node.js";
-import {ElseClause, FileSyntax, ParametersSyntax, TypeClause} from "./special.syntax.js";
-import {ExpressionSyntax} from "./expression.syntax.js";
+} from "./syntax/syntax.node.js";
+import {ElseClause, FileSyntax, ParametersSyntax, TypeClause} from "./syntax/special.syntax.js";
+import {ExpressionSyntax} from "./syntax/expression.syntax.js";
 import {
   canBePostFixOperator,
   getBinaryOperatorPrecedence,
   getUnaryOperatorPrecedence,
   supportsOnlyNameExpression
-} from "./syntax.facts.js";
+} from "./syntax/syntax.facts.js";
 import {TypeSymbol} from "../symbols/symbols.js";
-import {SyntaxKind} from "./syntax.kind.js";
+import {SyntaxKind} from "./syntax/syntax.kind.js";
 
 
 export class Parser {
