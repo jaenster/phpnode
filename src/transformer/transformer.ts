@@ -2,13 +2,17 @@ import {
   BoundBlockStatement,
   BoundBodyStatement,
   BoundBreakStatement,
-  BoundContinueStatement, BoundEchoStatement,
+  BoundClassStatement,
+  BoundContinueStatement,
+  BoundEchoStatement,
   BoundExpressionStatement,
   BoundForStatement,
+  BoundFunctionStatement,
   BoundIfStatement,
   BoundJumpConditionalStatement,
   BoundJumpStatement,
   BoundLabelStatement,
+  BoundPropertyStatement,
   BoundReturnStatement,
   BoundSemiColonStatement,
   BoundStatement,
@@ -28,6 +32,7 @@ import {
   BoundVariableExpression
 } from "../binder/bound-expression.js";
 import {BoundFile} from "../binder/bound-special.js";
+import {BoundModifiers} from "../binder/bound-modifiers.js";
 
 
 export abstract class Transformer {
@@ -52,6 +57,8 @@ export abstract class Transformer {
 
   transformStatement(statement: BoundStatement) {
     if (statement) switch (statement.kind) {
+      case BoundKind.BoundClassStatement:
+        return this.transformClassStatement(statement);
       case BoundKind.BoundBlockStatement:
         return this.transformBlockStatement(statement);
       case BoundKind.BoundBodyStatement:
@@ -327,6 +334,54 @@ export abstract class Transformer {
       });
     }
 
+    return node;
+  }
+
+
+  private transformFunction(node: BoundFunctionStatement): BoundFunctionStatement {
+    const body = this.transformStatement(node.body);
+    if (body !== node.body) {
+      return createBoundStatement({
+        kind: BoundKind.BoundFunctionStatement,
+        body,
+        parameters: node.parameters,
+        modifiers: node.modifiers,
+        name: node.name,
+      })
+    }
+    return node;
+  }
+
+  private transformProperty(node: BoundPropertyStatement): BoundPropertyStatement {
+    return node;
+  }
+
+  private transformClassStatement(node: BoundClassStatement) {
+    const methods: BoundFunctionStatement[] = [];
+    const properties: BoundPropertyStatement[] = [];
+    let isNew = false;
+    for (const member of node.methods) {
+      const other = this.transformFunction(member);
+      isNew ||= other !== member;
+      methods.push(other);
+    }
+
+    for (const member of node.properties) {
+      const other = this.transformProperty(member);
+      isNew ||= other !== member;
+      properties.push(other);
+    }
+
+
+    if (isNew) {
+      return createBoundStatement({
+        kind: BoundKind.BoundClassStatement,
+        methods,
+        modifiers: node.modifiers,
+        properties,
+        name: node.name,
+      })
+    }
     return node;
   }
 }

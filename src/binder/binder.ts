@@ -1,6 +1,10 @@
 import {
-  BoundBodyStatement, BoundContinueStatement, BoundEchoStatement,
-  BoundExpressionStatement, BoundSemiColonStatement,
+  BoundBodyStatement,
+  BoundContinueStatement,
+  BoundExpressionStatement,
+  BoundFunctionStatement,
+  BoundPropertyStatement,
+  BoundSemiColonStatement,
   BoundStatement,
   BoundVariableStatement
 } from "./bound-statement.js";
@@ -8,10 +12,21 @@ import {BoundScope} from "./bound-scope.js";
 import {Diagnostics} from "../common/diagnostics.js";
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {
-  BlockStatementSyntax, BreakStatementSyntax, ContinueStatementSyntax, EchoStatementSyntax,
+  BlockStatementSyntax,
+  BreakStatementSyntax,
+  ClassStatementSyntax,
+  ContinueStatementSyntax,
+  EchoStatementSyntax,
   ExpressionStatementSyntax,
-  ForStatementSyntax, IfStatementSyntax, MethodStatementSyntax, SemiColonSyntax,
-  StatementSyntax, VariableStatementSyntax, WhileStatementSyntax
+  ForStatementSyntax,
+  FunctionStatementSyntax,
+  IfStatementSyntax,
+  PropertyStatementSyntax,
+  ReturnStatementSyntax,
+  SemiColonSyntax,
+  StatementSyntax,
+  VariableStatementSyntax,
+  WhileStatementSyntax
 } from "../source/syntax/statement.syntax.js";
 import {SyntaxNodeKind} from "../source/syntax/syntax.node.js";
 import {BoundKind, createBoundExpression, createBoundSpecial, createBoundStatement} from "./bound.node.js";
@@ -21,13 +36,20 @@ import {MapExt} from "map-ext";
 import {
   AssignmentExpressionSyntax,
   BinaryExpressionSyntax,
-  CommaExpressionSyntax, EmptyExpressionSyntax,
-  ExpressionSyntax, LiteralExpressionSyntax, NameExpressionSyntax, ParenExpressionSyntax, UnaryExpressionSyntax
+  CommaExpressionSyntax,
+  EmptyExpressionSyntax,
+  ExpressionSyntax,
+  LiteralExpressionSyntax,
+  NameExpressionSyntax,
+  ParenExpressionSyntax,
+  UnaryExpressionSyntax
 } from "../source/syntax/expression.syntax.js";
 import {BoundExpression} from "./bound-expression.js";
 import {BoundBinaryOperator, BoundUnaryOperator} from "./bound-operator.js";
 import {TextSpan} from "../common/text-span.js";
 import {SyntaxKind} from "../source/syntax/syntax.kind.js";
+import {BoundModifiers, ModifierMapping} from "./bound-modifiers.js";
+import {SyntaxToken} from "../source/lexer.js";
 
 export class Binder {
   private currentLoop: Array<Omit<BoundBodyStatement, 'statement'>> = [];
@@ -55,6 +77,8 @@ export class Binder {
 
   bindStatement(syntax: StatementSyntax) {
     if (syntax) switch (syntax.kind) {
+      case SyntaxNodeKind.ClassStatementSyntax:
+        return this.bindClassStatement(syntax);
       case SyntaxNodeKind.ContinueStatementSyntax:
         return this.bindContinueStatement(syntax);
       case SyntaxNodeKind.BreakStatementSyntax:
@@ -75,6 +99,8 @@ export class Binder {
         return this.bindSemiColonSyntax(syntax);
       case SyntaxNodeKind.EchoStatementSyntax:
         return this.bindEchoStatementSyntax(syntax);
+      case SyntaxNodeKind.ReturnStatementSyntax:
+        return this.bindReturnStatementSyntax(syntax);
 
     }
     throw new Error(`Unexpected syntax ${SyntaxNodeKind[syntax?.kind]}`)
@@ -110,16 +136,25 @@ export class Binder {
     return createBoundStatement({kind: BoundKind.BoundForStatement, init, condition, afterthought, body})
   }
 
+
+  private bindOptionalType(type?: SyntaxToken) {
+    if (!type) {
+      return TypeSymbol.any;
+    }
+
+    // If type is defined specifically, but it cant be found, return an error
+    return this.scope.tryLookupType(type.text) ?? TypeSymbol.error;
+  }
+
   private bindParameter(syntax: ParametersSyntax) {
-    const type = this.scope.tryLookupType(syntax.type.identifier.text) ?? TypeSymbol.error;
+    const type = this.bindOptionalType(syntax.type);
     if (type === TypeSymbol.error) {
-      this.diagnostics.reportTypeDoesntExists(syntax.type.identifier.span, syntax.type.identifier.text);
+      this.diagnostics.reportTypeDoesntExists(syntax.type.span, syntax.type.text);
     }
     const variable = new VariableSymbol(syntax.name.text, false, type);
     this.scope.tryDeclare(variable)
     return createBoundSpecial<BoundParameter>({kind: BoundKind.BoundParameter, variable});
   }
-
 
   private bindIfStatementSyntax(syntax: IfStatementSyntax) {
     const condition = this.bindExpression(syntax.condition);
@@ -353,5 +388,72 @@ export class Binder {
     }
 
     return createBoundStatement({kind: BoundKind.BoundFile, statements, filename: file.filename})
+  }
+
+
+  private bindModifiers(allowed: BoundModifiers, modifiers: SyntaxToken[], on: string) {
+    let mods = 0;
+    for(const modifier of modifiers) {
+      const flag = ModifierMapping[String(modifier.kind)];
+      if ((allowed & flag) !== flag) {
+        this.diagnostics.reportModifierNotAllowed(modifier.span, on)
+      } else {
+        mods |= flag;
+      }
+    }
+    return mods;
+  }
+
+  private bindFunctionStatement(syntax: FunctionStatementSyntax): BoundFunctionStatement {
+    const body = this.bindBlockStatement(syntax.body);
+    const modifiers = this.bindModifiers(BoundModifiers.AllowedOnMethod, syntax.modifiers, 'method');
+    const parameters = syntax.parameters.map(el => this.bindParameter(el));
+
+    return createBoundStatement({
+      kind: BoundKind.BoundFunctionStatement,
+      body,
+      modifiers,
+      parameters: parameters,
+      name: syntax.identifier.text,
+    })
+  }
+
+  private bindPropertiesStatement(syntax: PropertyStatementSyntax): BoundPropertyStatement {
+    const modifiers = this.bindModifiers(BoundModifiers.AllowedOnProperty, syntax.modifiers, 'property');
+
+    return createBoundStatement({
+      kind: BoundKind.BoundPropertyStatement,
+      modifiers,
+      name: syntax.identifier.text
+    })
+  }
+
+  private bindClassStatement(syntax: ClassStatementSyntax) {
+    const modifiers = this.bindModifiers(BoundModifiers.AllowedInClass, syntax.modifiers, 'class');
+
+    const methods: BoundFunctionStatement[] = [];
+    for(const member of syntax.methods) {
+      methods.push(this.bindFunctionStatement(member));
+    }
+
+    const properties: BoundPropertyStatement[] = [];
+    for(const member of syntax.properties) {
+      properties.push(this.bindPropertiesStatement(member))
+    }
+
+    return createBoundStatement({
+      name: syntax.name.text,
+      kind: BoundKind.BoundClassStatement,
+      modifiers,
+      methods,
+      properties,
+    })
+  }
+
+  private bindReturnStatementSyntax(syntax: ReturnStatementSyntax) {
+    return createBoundStatement({
+      kind: BoundKind.BoundReturnStatement,
+      expression: this.bindExpression(syntax.expression) as BoundExpression,
+    });
   }
 }

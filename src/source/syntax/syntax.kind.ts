@@ -71,7 +71,7 @@ export enum SyntaxKind {
   EndForKeyword,
   EndForEachKeyword,
   EndIfKeyword,
-  EndWwitchKeyword,
+  EndSwitchKeyword,
   EndWhileKeyword,
   EvalKeyword,
   ExitKeyword,
@@ -116,7 +116,6 @@ export enum SyntaxKind {
   WhileKeyword,
   XorKeyword,
   YieldKeyword,
-  YieldFromKeyword,
 
 
   // Php doesnt consider these keywords but i do

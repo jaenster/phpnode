@@ -24,12 +24,14 @@ export function getKeywordKind(value: string) {
 const cacheToken = new WeakMap<SyntaxToken, TextSpan>()
 
 export class SyntaxToken {
+  private name: string;
   constructor(
     public readonly kind: SyntaxKind,
     public readonly position: number,
     public readonly text: string,
     public readonly value: any,
   ) {
+    this.name = SyntaxKind[this.kind];
   }
 
   get span() {
@@ -41,6 +43,7 @@ export class SyntaxToken {
   toString() {
     return SyntaxKind[this.kind]
   }
+
 }
 
 export class Lexer {

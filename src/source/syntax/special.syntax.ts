@@ -23,7 +23,7 @@ export type TypeClause = {
 export type ParametersSyntax = {
   kind: SyntaxNodeKind.ParameterSyntax
   name: SyntaxToken,
-  type: TypeClause,
+  type: SyntaxToken,
 }
 
 export type FileSyntax = {

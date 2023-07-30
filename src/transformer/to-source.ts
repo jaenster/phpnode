@@ -1,13 +1,13 @@
 import {BoundFile} from "../binder/bound-special.js";
 import {
   BoundBlockStatement,
-  BoundBodyStatement, BoundBreakStatement, BoundContinueStatement,
+  BoundBodyStatement, BoundBreakStatement, BoundClassStatement, BoundContinueStatement,
   BoundExpressionStatement,
-  BoundForStatement,
+  BoundForStatement, BoundFunctionStatement,
   BoundIfStatement,
   BoundJumpConditionalStatement,
   BoundJumpStatement,
-  BoundLabelStatement, BoundReturnStatement, BoundSemiColonStatement,
+  BoundLabelStatement, BoundPropertyStatement, BoundReturnStatement, BoundSemiColonStatement,
   BoundStatement, BoundVariableStatement, BoundWhileStatement
 } from "../binder/bound-statement.js";
 import {
@@ -94,6 +94,8 @@ export abstract class ToSource {
         return this.toSourceVariableStatement(statement);
       case BoundKind.BoundWhileStatement:
         return this.toSourceWhileStatement(statement);
+      case BoundKind.BoundClassStatement:
+        return this.toSourceClassStatement(statement);
     }
     throw new Error('Did not implement '+BoundKind[statement.kind]);
   }
@@ -115,6 +117,35 @@ export abstract class ToSource {
         return this.toSourceUnaryExpression(node);
     }
     throw new Error('Did not implement '+BoundKind[node.kind]);
+  }
+
+  private toSourceMethodStatement(node: BoundFunctionStatement) {
+    const lines = [];
+    lines.push(`${node.name}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
+    lines.push(this.toSourceStatement(node.body));
+    lines.push(`}`)
+    return lines.join('\n');
+  }
+
+  private toSourceProperty(property: BoundPropertyStatement): string {
+    return property.name;
+  }
+
+  private toSourceClassStatement(statement: BoundClassStatement) {
+    const lines = [];
+
+    //ToDo; fix extends
+    lines.push(`class `+statement.name+' {');
+    for(const property of statement.properties) {
+      lines.push(this.toSourceProperty(property));
+    }
+
+    for(const member of statement.methods) {
+      lines.push(this.toSourceMethodStatement(member));
+    }
+
+    lines.push('}');
+    return lines.join('\n');
   }
 }
 

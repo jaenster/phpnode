@@ -38,6 +38,12 @@ export enum BoundKind {
   BoundWhileStatement,
   BoundEchoStatement,
   BoundFunctionStatement,
+  BoundClassStatement,
+  BoundPropertyStatement,
+}
+
+class Foo {
+  foo;
 }
 
 export type BoundNodeTypes = BoundExpression | BoundStatement | BoundSpecial;

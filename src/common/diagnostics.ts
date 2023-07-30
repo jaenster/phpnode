@@ -67,4 +67,8 @@ export class Diagnostics {
   reportCannotBreak(span: TextSpan) {
 
   }
+
+  reportModifierNotAllowed(span: TextSpan, on: string) {
+    this.report(span, `Modifier not allowed on ${on}`)
+  }
 }

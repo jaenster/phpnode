@@ -27,7 +27,7 @@ export const KeywordsBySyntax = {
   [SyntaxKind.EndForKeyword]: 'endfor',
   [SyntaxKind.EndForEachKeyword]: 'endforeach',
   [SyntaxKind.EndIfKeyword]: 'endif',
-  [SyntaxKind.EndWwitchKeyword]: 'endswitch',
+  [SyntaxKind.EndSwitchKeyword]: 'endswitch',
   [SyntaxKind.EndWhileKeyword]: 'endwhile',
   [SyntaxKind.EvalKeyword]: 'eval',
   [SyntaxKind.ExitKeyword]: 'exit',

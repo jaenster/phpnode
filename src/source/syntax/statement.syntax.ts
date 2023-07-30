@@ -10,7 +10,9 @@ export type StatementSyntax =
   | ExpressionStatementSyntax
   | ForStatementSyntax
   | IfStatementSyntax
-  | MethodStatementSyntax
+  | FunctionStatementSyntax
+  | ClassStatementSyntax
+  | PropertyStatementSyntax
   | ReturnStatementSyntax
   | SemiColonSyntax
   | VariableStatementSyntax
@@ -52,15 +54,30 @@ export type IfStatementSyntax = {
   body: StatementSyntax,
   elseClause?: ElseClause
 }
-export type MethodModifiers = never;
-export type MethodStatementSyntax = {
-  kind: SyntaxNodeKind.MethodStatementSyntax,
-  modifiers: MethodModifiers[],
+export type FunctionStatementSyntax = {
+  kind: SyntaxNodeKind.FunctionStatementSyntax,
+  modifiers: SyntaxToken[],
   keyword: SyntaxToken,
   identifier: SyntaxToken,
   parameters: ParametersSyntax[],
   body: BlockStatementSyntax,
   type: TypeClause,
+}
+export type ClassStatementSyntax = {
+  kind: SyntaxNodeKind.ClassStatementSyntax,
+  modifiers: SyntaxToken[]
+  keyword: SyntaxToken,
+  name: SyntaxToken,
+  extend?: SyntaxToken,
+  implements: SyntaxToken[]
+  methods: FunctionStatementSyntax[],
+  properties: PropertyStatementSyntax[],
+}
+export type PropertyStatementSyntax = {
+  kind: SyntaxNodeKind.PropertyStatementSyntax,
+  modifiers: SyntaxToken[],
+  identifier: SyntaxToken,
+  type: SyntaxToken,
 }
 export type ReturnStatementSyntax = {
   kind: SyntaxNodeKind.ReturnStatementSyntax,

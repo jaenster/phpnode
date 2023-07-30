@@ -139,6 +139,6 @@ export default __php__file("${escape(node.filename)})", async () => {`
   }
 
   toSourceReturnStatement(node: BoundReturnStatement): string {
-    return ""
+    return "return "+this.toSourceExpression(node.expression)
   }
 }

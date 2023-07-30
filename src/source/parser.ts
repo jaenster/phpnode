@@ -3,7 +3,8 @@ import {SyntaxToken} from "./lexer.js";
 import {Diagnostics} from "../common/diagnostics.js";
 import {
   BlockStatementSyntax,
-  ExpressionStatementSyntax, MethodStatementSyntax,
+  ExpressionStatementSyntax,
+  FunctionStatementSyntax, PropertyStatementSyntax,
   StatementSyntax,
   VariableStatementSyntax
 } from "./syntax/statement.syntax.js";
@@ -28,6 +29,7 @@ import {SyntaxKind} from "./syntax/syntax.kind.js";
 
 export class Parser {
   private position: number = 0;
+  private lostModifiers: SyntaxToken[];
 
   constructor(
     public readonly source: Source,
@@ -39,11 +41,71 @@ export class Parser {
 
   // Statements
   private parseStatement(): StatementSyntax {
+    this.lostModifiers = this.parseModifiers();
+
     switch (this.current().kind) {
+      case SyntaxKind.InsteadofKeyword:
+      // ToDo; Can support it some day, but its barely used and a big hack
+      case SyntaxKind.GotoKeyword:
+      // ToDo; goto can be supported with weird labeled blocks in nodejs and a while true,
+      // Todo; write support fot it in the binder, some day.
+      case SyntaxKind.EvalKeyword:
+      case SyntaxKind.DeclareKeyword:
+      case SyntaxKind.HaltCompilerKeyword:
+        throw new Error('Unsupported keyword');
+
+      case SyntaxKind.ClassKeyword:
+        return this.parseClassStatement();
+      case SyntaxKind.ExitKeyword:
+      case SyntaxKind.DieKeyword:
+        break;
+      case SyntaxKind.DoKeyword:
+      case SyntaxKind.ForEachKeyword:
+      case SyntaxKind.FunctionKeyword:
+      case SyntaxKind.GlobalKeyword:
+        break;
+      case SyntaxKind.IncludeKeyword:
+      case SyntaxKind.IncludeOnceKeyword:
+      case SyntaxKind.RequireKeyword:
+      case SyntaxKind.RequireOnceKeyword:
+        throw new Error('Current no support for multiple files')
+      case SyntaxKind.InstanceofKeyword:
+        break;
+      case SyntaxKind.InterfaceKeyword:
+        break;
+      case SyntaxKind.IssetKeyword:
+        break;
+      case SyntaxKind.MatchKeyword:
+        break;
+      case SyntaxKind.NamespaceKeyword:
+        break;
+      case SyntaxKind.PrintKeyword:
+        break;
+      case SyntaxKind.StaticKeyword:
+        break;
+      case SyntaxKind.SwitchKeyword:
+        break;
+      case SyntaxKind.ThrowKeyword:
+        break;
+      case SyntaxKind.TraitKeyword:
+        break;
+      case SyntaxKind.TryKeyword:
+        break;
+      case SyntaxKind.UnsetKeyword:
+        break;
+      case SyntaxKind.UseKeyword:
+        break;
+      case SyntaxKind.VarKeyword:
+        break;
+      case SyntaxKind.YieldKeyword:
+        break;
+
+
       case SyntaxKind.PhpOpenToken:
         // For now just skip, later convert to a big echo statement
         this.match(SyntaxKind.PhpOpenToken)
         return this.parseStatement();
+
       case SyntaxKind.BraceLToken:
         return this.parseBlockStatement()
       case SyntaxKind.IfKeyword:
@@ -84,7 +146,6 @@ export class Parser {
     }
     const close = this.match(SyntaxKind.BraceRToken)
 
-    this.hoistMethods(statements);
     return createStatementNode<BlockStatementSyntax>({
       kind: SyntaxNodeKind.BlockStatementSyntax,
       open,
@@ -98,7 +159,7 @@ export class Parser {
     const identifier = this.match(SyntaxKind.IdentifierToken);
     const equal = this.match(SyntaxKind.EqualToken);
     const init = this.parseExpression();
-    this.matchSemicolonOrEnterEnding();
+    this.parseSemiColonStatement();
 
     return createStatementNode({kind: SyntaxNodeKind.VariableStatementSyntax, keyword, identifier, equal, init});
   }
@@ -120,7 +181,7 @@ export class Parser {
 
   private parseExpressionStatement() {
     const expression = this.parseExpression();
-    this.matchSemicolonOrEnterEnding();
+    this.match(SyntaxKind.SemiColonToken);
     return createStatementNode<ExpressionStatementSyntax>({kind: SyntaxNodeKind.ExpressionStatementSyntax, expression});
   }
 
@@ -327,6 +388,14 @@ export class Parser {
     return new SyntaxToken(kind, current.position, null, null);
   }
 
+  private optional(kind: SyntaxKind) {
+    const current = this.current();
+    if (current.kind === kind) {
+      return [true, this.nextToken()] as const;
+    }
+    return [false, undefined] as const;
+  }
+
   private nextToken() {
     // Get rid of current whitespace, but we can depend on it on specific places, like we need whitespace
     const current = this.current();
@@ -356,39 +425,6 @@ export class Parser {
     return this.peek(0)
   }
 
-  private matchSemicolonOrEnterEnding() {
-    // Statements are ended by a ";" or enter or EOF;
-    let current = this.current();
-
-    // An expression can end in a space and then a semicolon. That is valid.
-    // Once it hits another token, it's not a semicolon
-    if (current.kind !== SyntaxKind.EOF && current.kind !== SyntaxKind.SemiColonToken) {
-
-      // Check if enter
-      const previous = this.previous(1);
-      const previousLine = this.source.getLineNumber(previous.position);
-      const currentLine = this.source.getLineNumber(current.position);
-      // Need semicolon if it's on the same line
-      if (previousLine == currentLine) {
-        this.diagnostics.reportNeedSemicolon(current.span);
-      }
-    }
-
-    if (current.kind === SyntaxKind.SemiColonToken) {
-      this.nextToken();
-    }
-  }
-
-  hoistMethods(statements: StatementSyntax[]) {
-    statements.sort((a, b): number => {
-      const aIs = a.kind === SyntaxNodeKind.MethodStatementSyntax;
-      const bIs = b.kind === SyntaxNodeKind.MethodStatementSyntax;
-      // Either both a method, or both not
-      if (aIs === bIs) return 0;
-      // move method up, or non method down
-      return aIs ? -1 : 1
-    })
-  }
 
   parseFile(): FileSyntax {
     let current = this.current();
@@ -398,7 +434,6 @@ export class Parser {
       body.push(statement);
       current = this.current();
     }
-    this.hoistMethods(body);
     return createSpecialNode({
       kind: SyntaxNodeKind.FileSyntax,
       filename: this.source.file,
@@ -407,13 +442,19 @@ export class Parser {
     })
   }
 
+  private parseVariable() {
+    this.match(SyntaxKind.DollarToken);
+    return this.match(SyntaxKind.IdentifierToken);
+  }
+
   parseParameters() {
     const parameters: ParametersSyntax[] = [];
     this.match(SyntaxKind.ParenLToken);
     if (this.current().kind !== SyntaxKind.ParenRToken) {
       do {
-        const name = this.match(SyntaxKind.IdentifierToken);
-        const type = this.parseTypeClause();
+
+        const [, type] = this.optional(SyntaxKind.IdentifierToken);
+        const name = this.parseVariable();
         parameters.push(createSpecialNode({kind: SyntaxNodeKind.ParameterSyntax, name, type}));
 
         // Stop on paren
@@ -450,7 +491,7 @@ export class Parser {
     const parseExpression = this.current().kind !== SyntaxKind.EOF ? currentLine === nextLine : false;
     const expression = parseExpression ? this.parseExpression() : undefined;
 
-    this.matchSemicolonOrEnterEnding()
+    this.match(SyntaxKind.SemiColonToken);
 
     return createStatementNode({
       kind: SyntaxNodeKind.ReturnStatementSyntax,
@@ -462,11 +503,138 @@ export class Parser {
   private parseEchoStatement() {
     const keyword = this.match(SyntaxKind.EchoKeyword)
     const expression = this.parseExpression();
-    this.matchSemicolonOrEnterEnding();
+    this.match(SyntaxKind.SemiColonToken);
     return createStatementNode<ExpressionStatementSyntax>({
       kind: SyntaxNodeKind.EchoStatementSyntax,
       expression,
       keyword
     });
+  }
+
+  private parseModifier() {
+    switch (this.current().kind) {
+      case SyntaxKind.PublicKeyword:
+      case SyntaxKind.VarKeyword:
+      case SyntaxKind.PrivateKeyword:
+      case SyntaxKind.ReadonlyKeyword:
+      case SyntaxKind.FinalKeyword:
+      case SyntaxKind.AbstractKeyword:
+      case SyntaxKind.ProtectedKeyword:
+      case SyntaxKind.StaticKeyword:
+        return this.nextToken();
+    }
+    return undefined
+  }
+
+  private parseModifiers() {
+    const arr = [] as SyntaxToken[]
+    for (let last = this.parseModifier(); last; last = this.parseModifier()) {
+      arr.push(last)
+    }
+    return arr;
+  }
+
+
+  private parseFunction(modifiers: SyntaxToken[] = []) {
+    const keyword = this.match(SyntaxKind.FunctionKeyword);
+    const identifier = this.match(SyntaxKind.IdentifierToken);
+    const parameters = this.parseParameters()
+    const type = this.parseOptionalTypeClause()
+    const body = this.parseBlockStatement();
+
+    return createStatementNode({
+      kind: SyntaxNodeKind.FunctionStatementSyntax,
+      modifiers: modifiers,
+      keyword,
+      identifier,
+      parameters,
+      body,
+      type,
+    })
+  }
+
+  private parseClassMember() {
+    const modifiers = this.parseModifiers();
+
+    if (this.current().kind === SyntaxKind.FunctionKeyword) {
+      return this.parseFunction(modifiers)
+    } else {
+
+      const [hasType, type] = this.optional(SyntaxKind.IdentifierToken);
+      if (this.current().kind !== SyntaxKind.DollarToken) {
+        this.optional(SyntaxKind.SemiColonToken);
+        return createStatementNode({
+          kind: SyntaxNodeKind.LiteralExpressionSyntax,
+          type: TypeSymbol.error,
+          value: null
+        })
+      }
+      const identifier = this.parseVariable();
+      this.optional(SyntaxKind.SemiColonToken);
+      return createStatementNode({
+        kind: SyntaxNodeKind.PropertyStatementSyntax,
+        identifier,
+        modifiers,
+        type,
+      })
+    }
+  }
+
+  private parseClassMembers() {
+    const methods = [] as FunctionStatementSyntax[];
+    const properties = [] as PropertyStatementSyntax[];
+    do {
+      const member = this.parseClassMember();
+      switch (member.kind) {
+        case SyntaxNodeKind.FunctionStatementSyntax:
+          methods.push(member);
+          break;
+        case SyntaxNodeKind.PropertyStatementSyntax:
+          properties.push(member);
+          break;
+      }
+      if (this.current().kind === SyntaxKind.BraceRToken) {
+        this.nextToken();
+        break;
+      }
+    } while (this.current().kind !== SyntaxKind.EOF)
+    return {methods, properties};
+  }
+
+  private parseClassStatement() {
+    // abstract/final can come before class statements
+    const modifiers = this.lostModifiers;
+
+    const keyword = this.match(SyntaxKind.ClassKeyword);
+    //ToDo; support anon classes
+    const name = this.match(SyntaxKind.IdentifierToken);
+
+    let extend: SyntaxToken;
+    const implents: SyntaxToken[] = [];
+    const [hasExtends, extendKeyword] = this.optional(SyntaxKind.ExtendsKeyword);
+    if (hasExtends) {
+      extend = this.match(SyntaxKind.IdentifierToken);
+    }
+
+    const [hasImplements, implementsKeyword] = this.optional(SyntaxKind.ImplementsKeyword);
+    if (hasImplements) {
+      do {
+        implents.push(this.match(SyntaxKind.IdentifierToken));
+      } while (this.current().kind === SyntaxKind.CommaToken);
+    }
+
+    this.match(SyntaxKind.BraceLToken);
+
+    const {methods, properties} = this.parseClassMembers();
+    return createStatementNode({
+      kind: SyntaxNodeKind.ClassStatementSyntax,
+      keyword,
+      methods,
+      extend,
+      implements: implents,
+      modifiers,
+      properties,
+      name
+    })
   }
 }

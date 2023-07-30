@@ -1,7 +1,8 @@
-import {BoundExpression} from "./bound-expression.js";
-import {BoundFile, BoundLabel} from "./bound-special.js";
+import {BoundExpression, BoundNameExpression} from "./bound-expression.js";
+import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {BoundKind} from "./bound.node.js";
 import {VariableSymbol} from "../symbols/symbols.js";
+import {BoundModifiers} from "./bound-modifiers.js";
 
 export type BoundStatement =
   | BoundBlockStatement
@@ -14,6 +15,9 @@ export type BoundStatement =
   | BoundIfStatement
   | BoundJumpConditionalStatement
   | BoundJumpStatement
+  | BoundFunctionStatement
+  | BoundClassStatement
+  | BoundPropertyStatement
   | BoundLabelStatement
   | BoundSemiColonStatement
   | BoundVariableStatement
@@ -94,4 +98,23 @@ export type BoundWhileStatement = {
 }
 export type BoundSemiColonStatement = {
   kind: BoundKind.BoundSemiColonStatement,
+}
+export type BoundFunctionStatement = {
+  kind: BoundKind.BoundFunctionStatement,
+  body: BoundStatement,
+  parameters: BoundParameter[],
+  modifiers: BoundModifiers,
+  name: string,
+}
+export type BoundClassStatement = {
+  kind: BoundKind.BoundClassStatement,
+  name: string,
+  methods: BoundFunctionStatement[],
+  modifiers: BoundModifiers,
+  properties: BoundPropertyStatement[],
+}
+export type BoundPropertyStatement = {
+  kind: BoundKind.BoundPropertyStatement,
+  modifiers: BoundModifiers,
+  name: string,
 }
