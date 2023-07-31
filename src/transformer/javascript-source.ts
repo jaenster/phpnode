@@ -52,17 +52,17 @@ export class Javascript extends ToSource {
     // They are block scoped too, to avoid issues with it, abuse the way javascript works
 
     const names = [];
-    for(const name of scope.variables.keys()) {
+    for (const name of scope.variables.keys()) {
       names.push(name);
     }
 
-    return names.length ? 'let '+names.join(', ') : '';
+    return names.length ? 'let ' + names.join(', ') : '';
   }
 
   toSourceFileStatement(node: BoundFile): string {
     const source = [
       `//Transpiled
-export default __php__file("${escape(node.filename)})", async () => {`
+export default __php__file("${escape(node.filename)}", async () => {`
     ];
 
     const declarations = this.toSourceDeclareVariables(node.scope);
@@ -86,17 +86,17 @@ export default __php__file("${escape(node.filename)})", async () => {`
     const operator = node.operator;
 
     if (operator === BoundBinaryOperator.call) {
-      return 'await ('+left+"("+right+"))";
+      return 'await (' + left + "(" + right + "))";
     } else if (operator === BoundBinaryOperator.memberCall) {
-      return 'await ('+left+"("+right+"))";
+      return 'await (' + left + "(" + right + "))";
     }
 
     const operatorString = binaryOperators[node.operator.kind];
-    return left +operatorString+right;
+    return left + operatorString + right;
   }
 
   toSourceBlockStatement(node: BoundBlockStatement): string {
-    return "{\n"+node.statements.map(el => this.toSourceStatement(el)).join('\n')+'}\n';
+    return "{\n" + node.statements.map(el => this.toSourceStatement(el)).join('\n') + '}\n';
   }
 
   toSourceBodyStatement(node: BoundBodyStatement): string {
@@ -117,7 +117,7 @@ export default __php__file("${escape(node.filename)})", async () => {`
 
   toSourceExpressionStatement(node: BoundExpressionStatement): string {
     const expression = this.toSourceExpression(node.expression);
-    return expression+';';
+    return expression + ';';
   }
 
   toSourceForStatement(node: BoundForStatement): string {
@@ -156,7 +156,12 @@ export default __php__file("${escape(node.filename)})", async () => {`
   toSourceUnaryExpression(node: BoundUnaryExpression): string {
     const content = this.toSourceExpression(node.operand);
     const operator = unaryOperators[node.operator.kind];
-    return node.operator.post ? content + operator : operator +' '+content;
+
+    if (operator === 'new') {
+      return 'new (' + content + ')';
+    }
+
+    return node.operator.post ? content + operator : operator + ' ' + content;
   }
 
   toSourceVariableExpression(node: BoundVariableExpression): string {
@@ -172,7 +177,7 @@ export default __php__file("${escape(node.filename)})", async () => {`
   }
 
   toSourceReturnStatement(node: BoundReturnStatement): string {
-    return "return "+this.toSourceExpression(node.expression)
+    return "return " + this.toSourceExpression(node.expression)
   }
 
   toSourceFunctionStatement(node: BoundFunctionStatement) {
@@ -198,12 +203,12 @@ export default __php__file("${escape(node.filename)})", async () => {`
   toSourceClassStatement(statement: BoundClassStatement) {
     const lines = [];
 
-    lines.push(`class `+statement.name+' {');
-    for(const property of statement.properties) {
+    lines.push(`class ` + statement.name + ' {');
+    for (const property of statement.properties) {
       lines.push(this.toSourceProperty(property));
     }
 
-    for(const member of statement.methods) {
+    for (const member of statement.methods) {
       lines.push(this.toSourceMethodStatement(member));
     }
 

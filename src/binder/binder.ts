@@ -316,7 +316,7 @@ export class Binder {
       variable = new VariableSymbol(name, false, TypeSymbol.func);
     }
 
-    return createBoundExpression({kind: BoundKind.BoundNameExpression, type: variable.type, variable});
+    return createBoundExpression({kind: BoundKind.BoundNameExpression, type: variable.type, variable, modifiers: 0});
   }
 
   bindLiteralExpression(syntax: LiteralExpressionSyntax) {

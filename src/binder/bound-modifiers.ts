@@ -12,6 +12,9 @@ export enum BoundModifiers {
 
   None = 0,
 
+  // Dont convert
+  TranspilerInternal,
+
   AllowedInClass = Abstract | Final,
   AllowedOnMethod = Abstract | Final | Public | Protected | Private | Static,
   AllowedOnProperty = Static | Readonly | Public | Private | Protected ,

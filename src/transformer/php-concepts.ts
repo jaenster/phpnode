@@ -10,6 +10,8 @@ import {BoundBinaryOperator} from "../binder/bound-operator.js";
 import {TypeSymbol} from "../symbols/symbols.js";
 import {BuiltinFunctions} from "../symbols/buildin-functions.js";
 import {BoundFile} from "../binder/bound-special.js";
+import {BoundExpression, BoundNameExpression} from "../binder/bound-expression.js";
+import {BoundModifiers} from "../binder/bound-modifiers.js";
 
 export class PhpConcepts extends Transformer {
 
@@ -18,6 +20,7 @@ export class PhpConcepts extends Transformer {
       kind: BoundKind.BoundNameExpression,
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalPrint,
+      modifiers: BoundModifiers.TranspilerInternal,
     });
     const right = this.transformExpression(node.expression);
     const operator = BoundBinaryOperator.call
@@ -34,6 +37,54 @@ export class PhpConcepts extends Transformer {
   }
 
   private currentNamespace = '';
+
+  transformNameExpression(node: BoundNameExpression): BoundExpression {
+    // Ignore internal name epxressions to avoid recursion
+    if ((node.modifiers & BoundModifiers.TranspilerInternal) === BoundModifiers.TranspilerInternal) {
+      return super.transformNameExpression(node);
+    }
+
+    // Every name expression can be in another file
+    const tmpLeft = createBoundExpression({
+      kind: BoundKind.BoundNameExpression,
+      type: TypeSymbol.func,
+      variable: BuiltinFunctions.internalUse,
+      modifiers: BoundModifiers.TranspilerInternal,
+    });
+
+    // __php__use(namespaceString, context)
+    // __php__use("Foo", "")
+    const tmpRight = createBoundExpression({
+      kind: BoundKind.BoundCommaExpression,
+      type: TypeSymbol.any,
+      expressions: [
+        //  "Foo"
+        createBoundExpression({
+          kind: BoundKind.BoundLiteralExpression,
+          type: TypeSymbol.string,
+          value: node.variable.name,
+        }),
+        // ""
+        createBoundExpression({
+          kind: BoundKind.BoundLiteralExpression,
+          type: TypeSymbol.string,
+          value: this.currentNamespace, // Class key
+        }),
+      ],
+    });
+
+    // Allow rewriting on these expressions. (e.g. variable hoisting in the child function)
+    const left = this.transformExpression(tmpLeft);
+    const right = this.transformExpression(tmpRight);
+
+    const operator = BoundBinaryOperator.call
+
+    return createBoundExpression({
+      kind: BoundKind.BoundBinaryExpression,
+      type: operator.resultType,
+      left, operator, right
+    })
+  }
 
   private wrapBlockStatement(node: BoundBlockStatement) {
     const statements = [];
@@ -65,6 +116,7 @@ export class PhpConcepts extends Transformer {
       kind: BoundKind.BoundNameExpression,
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalNamespace,
+      modifiers: BoundModifiers.TranspilerInternal,
     });
 
     // Create arguments ('Namespace', 'Foo', async () => class Foo {})
