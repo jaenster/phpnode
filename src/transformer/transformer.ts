@@ -34,8 +34,10 @@ import {
 import {BoundFile} from "../binder/bound-special.js";
 import {BoundScope} from "../binder/bound-scope.js";
 import {TypeSymbol} from "../symbols/symbols.js";
+import {BoundBinaryOperator} from "../binder/bound-operator.js";
 
 export abstract class Transformer {
+  public currentBinaryOperator?: BoundBinaryOperator;
 
   transformFile(node: BoundFile): BoundFile & BoundNode {
     let changed = false
@@ -272,11 +274,14 @@ export abstract class Transformer {
   }
 
   transformBinaryExpression(node: BoundBinaryExpression): BoundExpression {
-    const left = node.left;
-    const operator = node.operator;
-    const right = node.right;
+    const left = this.transformExpression(node.left);
 
-    if (right !== node.right || operator !== node.operator || right !== node.right) {
+    const lastOperator = this.currentBinaryOperator;
+    const operator = this.currentBinaryOperator = node.operator;
+    const right = this.transformExpression(node.right);
+
+    this.currentBinaryOperator = lastOperator;
+    if (right !== node.right || operator !== node.operator || left !== node.left) {
       return createBoundExpression({
         kind: BoundKind.BoundBinaryExpression,
         type: operator.resultType,

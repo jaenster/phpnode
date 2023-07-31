@@ -321,7 +321,14 @@ export class Parser {
         const operator = this.current();
         const right = this.parseParenExpression();
         left = createExpressionNode({kind: SyntaxNodeKind.BinaryExpressionSyntax, left, operator, right})
+      } else if (this.current().kind === SyntaxKind.ArrowToken) {
 
+        // Member access is weird, because it can only be followed by a identifier token
+        // And ToDo; later it we need to support variable names via $this->$test, but right now, just identifier tokens
+        const operator = this.nextToken();
+        const right = this.parseBinaryExpression(precedence);
+
+        left = createExpressionNode({kind: SyntaxNodeKind.BinaryExpressionSyntax, left, operator, right});
       } else {
         const operator = this.nextToken();
         const right = this.parseBinaryExpression(precedence);

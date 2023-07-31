@@ -6,7 +6,7 @@ import {
   BoundStatement
 } from "../binder/bound-statement.js";
 import {BoundKind, BoundNode, createBoundExpression, createBoundStatement} from "../binder/bound.node.js";
-import {BoundBinaryOperator} from "../binder/bound-operator.js";
+import {BoundBinaryOperator, BoundBinaryOperatorKind} from "../binder/bound-operator.js";
 import {TypeSymbol} from "../symbols/symbols.js";
 import {BuiltinFunctions} from "../symbols/buildin-functions.js";
 import {BoundFile} from "../binder/bound-special.js";
@@ -41,6 +41,11 @@ export class PhpConcepts extends Transformer {
   transformNameExpression(node: BoundNameExpression): BoundExpression {
     // Ignore internal name epxressions to avoid recursion
     if ((node.modifiers & BoundModifiers.TranspilerInternal) === BoundModifiers.TranspilerInternal) {
+      return super.transformNameExpression(node);
+    }
+
+    // Member access should not be converted to a use statement
+    if (this.currentBinaryOperator?.kind === BoundBinaryOperatorKind.MemberAccess) {
       return super.transformNameExpression(node);
     }
 

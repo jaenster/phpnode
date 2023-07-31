@@ -3,8 +3,7 @@ import {
   BoundAssignmentExpression,
   BoundBinaryExpression,
   BoundCommaExpression,
-  BoundErrorExpression,
-  BoundExpression,
+  BoundEmptyExpression,
   BoundLiteralExpression,
   BoundNameExpression,
   BoundUnaryExpression,
@@ -158,14 +157,14 @@ export default __php__file("${escape(node.filename)}", async () => {`
     const operator = unaryOperators[node.operator.kind];
 
     if (operator === 'new') {
-      return 'new (' + content + ')';
+      return '(new (' + content + '))';
     }
 
     return node.operator.post ? content + operator : operator + ' ' + content;
   }
 
   toSourceVariableExpression(node: BoundVariableExpression): string {
-    return "";
+    return node.variable.name;
   }
 
   toSourceVariableStatement(node: BoundVariableStatement): string {
@@ -214,5 +213,9 @@ export default __php__file("${escape(node.filename)}", async () => {`
 
     lines.push('}');
     return lines.join('\n');
+  }
+
+  toSourceEmptyExpression(statement: BoundEmptyExpression): string {
+    return "";
   }
 }

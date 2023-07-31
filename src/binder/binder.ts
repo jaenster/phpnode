@@ -313,7 +313,11 @@ export class Binder {
     if (!has) {
       // Sadly, in the way php works, this has to be a placeholder. We cant throw a compile error here due to
       // the way its dynamically typed
-      variable = new VariableSymbol(name, false, TypeSymbol.func);
+      variable = new VariableSymbol(name, false, TypeSymbol.any);
+    }
+
+    if (syntax.id.kind === SyntaxKind.VariableToken) {
+      return createBoundExpression({kind: BoundKind.BoundVariableExpression, type: variable.type, variable});
     }
 
     return createBoundExpression({kind: BoundKind.BoundNameExpression, type: variable.type, variable, modifiers: 0});
