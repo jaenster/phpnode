@@ -13,14 +13,14 @@ import {
 import {
   BoundBlockStatement,
   BoundBodyStatement,
-  BoundBreakStatement,
+  BoundBreakStatement, BoundClassStatement,
   BoundContinueStatement,
   BoundExpressionStatement,
-  BoundForStatement,
+  BoundForStatement, BoundFunctionStatement,
   BoundIfStatement,
   BoundJumpConditionalStatement,
   BoundJumpStatement,
-  BoundLabelStatement,
+  BoundLabelStatement, BoundMethodStatement, BoundPropertyStatement,
   BoundReturnStatement,
   BoundSemiColonStatement,
   BoundVariableStatement,
@@ -29,7 +29,6 @@ import {
 import {ToSource} from "./to-source.js";
 import {BoundBinaryOperator} from "../binder/bound-operator.js";
 import {KeywordsBySyntax} from "../source/syntax/keywords.js";
-import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);
@@ -78,7 +77,7 @@ export default __php__file("${escape(node.filename)})", async () => {`
   }
 
   toSourceCommaExpression(node: BoundCommaExpression): string {
-    return "";
+    return node.expressions.map(el => this.toSourceExpression(el)).join(',');
   }
 
   toSourceContinueStatement(node: BoundContinueStatement): string {
@@ -111,7 +110,8 @@ export default __php__file("${escape(node.filename)})", async () => {`
   }
 
   toSourceLiteralExpression(node: BoundLiteralExpression): string {
-    return node.value.text;
+    // Literal value can be a SyntaxToken, a string, a number, null
+    return typeof node.value === 'string' ? `"${escape(node.value)}"` : node?.value?.text;
   }
 
   toSourceNameExpression(node: BoundNameExpression): string {
@@ -140,5 +140,41 @@ export default __php__file("${escape(node.filename)})", async () => {`
 
   toSourceReturnStatement(node: BoundReturnStatement): string {
     return "return "+this.toSourceExpression(node.expression)
+  }
+
+  toSourceFunctionStatement(node: BoundFunctionStatement) {
+    const lines = [];
+    lines.push(`function ${node.name ?? ''}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
+    lines.push(this.toSourceStatement(node.body));
+    lines.push(`}`)
+    return lines.join('\n');
+  }
+
+  toSourceMethodStatement(node: BoundMethodStatement) {
+    const lines = [];
+    lines.push(`${node.name}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
+    lines.push(this.toSourceStatement(node.body));
+    lines.push(`}`)
+    return lines.join('\n');
+  }
+
+  toSourceProperty(property: BoundPropertyStatement): string {
+    return property.name;
+  }
+
+  toSourceClassStatement(statement: BoundClassStatement) {
+    const lines = [];
+
+    lines.push(`class `+statement.name+' {');
+    for(const property of statement.properties) {
+      lines.push(this.toSourceProperty(property));
+    }
+
+    for(const member of statement.methods) {
+      lines.push(this.toSourceMethodStatement(member));
+    }
+
+    lines.push('}');
+    return lines.join('\n');
   }
 }

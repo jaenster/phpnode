@@ -38,7 +38,7 @@ export function __php__upsert__namespace(...namespace) {
   return obj;
 }
 
-export async function __php__namespace(namespaceString: string, cb, key?: string) {
+export async function __php__namespace(namespaceString: string, key: string, cb) {
   const namespace = namespaceString.split('\\').filter(Boolean);
   const obj = __php__upsert__namespace(...namespace.slice(0, -1));
 

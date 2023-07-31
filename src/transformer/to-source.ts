@@ -7,17 +7,15 @@ import {
   BoundIfStatement,
   BoundJumpConditionalStatement,
   BoundJumpStatement,
-  BoundLabelStatement, BoundPropertyStatement, BoundReturnStatement, BoundSemiColonStatement,
+  BoundLabelStatement, BoundMethodStatement, BoundPropertyStatement, BoundReturnStatement, BoundSemiColonStatement,
   BoundStatement, BoundVariableStatement, BoundWhileStatement
 } from "../binder/bound-statement.js";
 import {
   BoundAssignmentExpression,
   BoundBinaryExpression, BoundCommaExpression,
-  BoundErrorExpression,
   BoundExpression, BoundLiteralExpression, BoundNameExpression, BoundUnaryExpression, BoundVariableExpression
 } from "../binder/bound-expression.js";
-import {BoundKind, BoundNode} from "../binder/bound.node.js";
-import {SyntaxKind} from "../source/syntax/syntax.kind.js";
+import {BoundKind} from "../binder/bound.node.js";
 
 export abstract class ToSource {
   abstract toSourceFileStatement(node: BoundFile): string;
@@ -64,43 +62,55 @@ export abstract class ToSource {
 
   abstract toSourceReturnStatement(node: BoundReturnStatement): string
 
-  toSourceStatement(statement: BoundStatement): string {
-    switch (statement.kind) {
+  abstract toSourceMethodStatement(node: BoundMethodStatement): string
+
+  abstract toSourceFunctionStatement(node: BoundFunctionStatement): string
+
+  abstract toSourceProperty(property: BoundPropertyStatement): string
+
+  abstract toSourceClassStatement(statement: BoundClassStatement): string
+
+  toSourceStatement(node: BoundStatement): string {
+    switch (node.kind) {
       case BoundKind.BoundSemiColonStatement:
-        return this.toSourceSemiColonStatement(statement);
+        return this.toSourceSemiColonStatement(node);
       case BoundKind.BoundBlockStatement:
-        return this.toSourceBlockStatement(statement);
+        return this.toSourceBlockStatement(node);
       case BoundKind.BoundBodyStatement:
-        return this.toSourceBodyStatement(statement);
+        return this.toSourceBodyStatement(node);
       case BoundKind.BoundBreakStatement:
-        return this.toSourceBreakStatement(statement);
+        return this.toSourceBreakStatement(node);
       case BoundKind.BoundContinueStatement:
-        return this.toSourceContinueStatement(statement);
+        return this.toSourceContinueStatement(node);
       case BoundKind.BoundExpressionStatement:
-        return this.toSourceExpressionStatement(statement);
+        return this.toSourceExpressionStatement(node);
       case BoundKind.BoundForStatement:
-        return this.toSourceForStatement(statement);
+        return this.toSourceForStatement(node);
       case BoundKind.BoundReturnStatement:
-        return this.toSourceReturnStatement(statement);
+        return this.toSourceReturnStatement(node);
       case BoundKind.BoundIfStatement:
-        return this.toSourceIfStatement(statement);
+        return this.toSourceIfStatement(node);
       case BoundKind.BoundJumpConditionalStatement:
-        return this.toSourceJumpConditionalStatement(statement);
+        return this.toSourceJumpConditionalStatement(node);
       case BoundKind.BoundJumpStatement:
-        return this.toSourceJumpStatement(statement);
+        return this.toSourceJumpStatement(node);
       case BoundKind.BoundLabelStatement:
-        return this.toSourceLabelStatement(statement);
+        return this.toSourceLabelStatement(node);
       case BoundKind.BoundVariableStatement:
-        return this.toSourceVariableStatement(statement);
+        return this.toSourceVariableStatement(node);
       case BoundKind.BoundWhileStatement:
-        return this.toSourceWhileStatement(statement);
+        return this.toSourceWhileStatement(node);
       case BoundKind.BoundClassStatement:
-        return this.toSourceClassStatement(statement);
+        return this.toSourceClassStatement(node);
+      // Statements that are valid expressions
+      case BoundKind.BoundMethodStatement:
+        return this.toSourceMethodStatement(node);
     }
-    throw new Error('Did not implement '+BoundKind[statement.kind]);
+    throw new Error('Did not implement ' + BoundKind[node.kind]);
   }
+
   toSourceExpression(node: BoundExpression): string {
-    switch(node.kind) {
+    switch (node.kind) {
       case BoundKind.BoundAssignmentExpression:
         return this.toSourceAssignmentExpression(node);
       case BoundKind.BoundBinaryExpression:
@@ -115,37 +125,12 @@ export abstract class ToSource {
         return this.toSourceLiteralExpression(node);
       case BoundKind.BoundUnaryExpression:
         return this.toSourceUnaryExpression(node);
+      case BoundKind.BoundFunctionStatement:
+        return this.toSourceFunctionStatement(node);
+      case BoundKind.BoundClassStatement:
+        return this.toSourceClassStatement(node);
     }
-    throw new Error('Did not implement '+BoundKind[node.kind]);
-  }
-
-  private toSourceMethodStatement(node: BoundFunctionStatement) {
-    const lines = [];
-    lines.push(`${node.name}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
-    lines.push(this.toSourceStatement(node.body));
-    lines.push(`}`)
-    return lines.join('\n');
-  }
-
-  private toSourceProperty(property: BoundPropertyStatement): string {
-    return property.name;
-  }
-
-  private toSourceClassStatement(statement: BoundClassStatement) {
-    const lines = [];
-
-    //ToDo; fix extends
-    lines.push(`class `+statement.name+' {');
-    for(const property of statement.properties) {
-      lines.push(this.toSourceProperty(property));
-    }
-
-    for(const member of statement.methods) {
-      lines.push(this.toSourceMethodStatement(member));
-    }
-
-    lines.push('}');
-    return lines.join('\n');
+    throw new Error('Did not implement ' + BoundKind[node.kind]);
   }
 }
 

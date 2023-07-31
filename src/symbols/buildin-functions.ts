@@ -11,12 +11,21 @@ export class BuiltinFunctions {
   public static readonly instances = new Map<string, MethodSymbol>();
 
 
-  static print: MethodSymbol;
+  static internalPrint: MethodSymbol;
+  static internalNamespace: MethodSymbol;
 
   static {
-    this.print = new MethodSymbol('__php__print', TypeSymbol.func, [createParam(TypeSymbol.string, 'data'),], TypeSymbol.void)
-    this.instances.set('__php__print', this.print);
-    this.instances.set('input', new MethodSymbol('input', TypeSymbol.func, [], TypeSymbol.string));
+    this.internalPrint = new MethodSymbol('__php__print', TypeSymbol.func, [createParam(TypeSymbol.string, 'data'),], TypeSymbol.void)
+    this.instances.set('__php__print', this.internalPrint);
+
+
+    this.internalNamespace = new MethodSymbol('__php__namespace', TypeSymbol.func, [
+      createParam(TypeSymbol.string, 'namespaceString'),
+      createParam(TypeSymbol.func, 'key'),
+      createParam(TypeSymbol.func, 'cb')
+    ], TypeSymbol.void);
+
+    this.instances.set('__php__namespace', this.internalNamespace);
   }
 
 }

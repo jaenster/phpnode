@@ -21,6 +21,7 @@ export class TypeSymbol extends Symbol {
   public static error = new TypeSymbol('error', true);
   public static void = new TypeSymbol('void', true);
   public static any = new TypeSymbol('any', true);
+  public static class = new TypeSymbol('class', true);
 
   // A simple internal generic the same that comes out
   public static self = new TypeSymbol('self', true);

@@ -11,7 +11,7 @@ import {
   BoundIfStatement,
   BoundJumpConditionalStatement,
   BoundJumpStatement,
-  BoundLabelStatement,
+  BoundLabelStatement, BoundMethodStatement,
   BoundPropertyStatement,
   BoundReturnStatement,
   BoundSemiColonStatement,
@@ -325,7 +325,7 @@ export abstract class Transformer {
     return node;
   }
 
-  private transformReturnStatement(node: BoundReturnStatement) {
+  transformReturnStatement(node: BoundReturnStatement) {
     const expression = node.expression ? this.transformExpression(node.expression) : node.expression;
     if (expression !== node.expression) {
       return createBoundStatement({
@@ -338,30 +338,45 @@ export abstract class Transformer {
   }
 
 
-  private transformFunction(node: BoundFunctionStatement): BoundFunctionStatement {
+  transformFunction(node: BoundFunctionStatement): BoundFunctionStatement {
     const body = this.transformStatement(node.body);
     if (body !== node.body) {
       return createBoundStatement({
         kind: BoundKind.BoundFunctionStatement,
         body,
         parameters: node.parameters,
-        modifiers: node.modifiers,
         name: node.name,
+        type: node.type,
       })
     }
     return node;
   }
 
-  private transformProperty(node: BoundPropertyStatement): BoundPropertyStatement {
+  transformMethod(node: BoundMethodStatement): BoundMethodStatement {
+    const body = this.transformStatement(node.body);
+    if (body !== node.body) {
+      return createBoundStatement({
+        kind: BoundKind.BoundMethodStatement,
+        body,
+        parameters: node.parameters,
+        modifiers: node.modifiers,
+        name: node.name,
+        type: node.type,
+      })
+    }
     return node;
   }
 
-  private transformClassStatement(node: BoundClassStatement) {
-    const methods: BoundFunctionStatement[] = [];
+  transformProperty(node: BoundPropertyStatement): BoundPropertyStatement {
+    return node;
+  }
+
+  transformClassStatement(node: BoundClassStatement) {
+    const methods: BoundMethodStatement[] = [];
     const properties: BoundPropertyStatement[] = [];
     let isNew = false;
     for (const member of node.methods) {
-      const other = this.transformFunction(member);
+      const other = this.transformMethod(member);
       isNew ||= other !== member;
       methods.push(other);
     }
@@ -380,6 +395,7 @@ export abstract class Transformer {
         modifiers: node.modifiers,
         properties,
         name: node.name,
+        type: node.type,
       })
     }
     return node;

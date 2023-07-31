@@ -2,7 +2,7 @@ import {
   BoundBodyStatement,
   BoundContinueStatement,
   BoundExpressionStatement,
-  BoundFunctionStatement,
+  BoundMethodStatement,
   BoundPropertyStatement,
   BoundSemiColonStatement,
   BoundStatement,
@@ -404,17 +404,18 @@ export class Binder {
     return mods;
   }
 
-  private bindFunctionStatement(syntax: FunctionStatementSyntax): BoundFunctionStatement {
+  private bindMethodStatement(syntax: FunctionStatementSyntax): BoundMethodStatement {
     const body = this.bindBlockStatement(syntax.body);
     const modifiers = this.bindModifiers(BoundModifiers.AllowedOnMethod, syntax.modifiers, 'method');
     const parameters = syntax.parameters.map(el => this.bindParameter(el));
 
     return createBoundStatement({
-      kind: BoundKind.BoundFunctionStatement,
+      kind: BoundKind.BoundMethodStatement,
       body,
       modifiers,
       parameters: parameters,
       name: syntax.identifier.text,
+      type: TypeSymbol.func,
     })
   }
 
@@ -431,9 +432,9 @@ export class Binder {
   private bindClassStatement(syntax: ClassStatementSyntax) {
     const modifiers = this.bindModifiers(BoundModifiers.AllowedInClass, syntax.modifiers, 'class');
 
-    const methods: BoundFunctionStatement[] = [];
+    const methods: BoundMethodStatement[] = [];
     for(const member of syntax.methods) {
-      methods.push(this.bindFunctionStatement(member));
+      methods.push(this.bindMethodStatement(member));
     }
 
     const properties: BoundPropertyStatement[] = [];
@@ -447,6 +448,7 @@ export class Binder {
       modifiers,
       methods,
       properties,
+      type: TypeSymbol.class,
     })
   }
 

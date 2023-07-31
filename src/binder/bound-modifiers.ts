@@ -10,6 +10,7 @@ export enum BoundModifiers {
   Readonly            = 1 << 5,
   Static            = 1 << 6,
 
+  None = 0,
 
   AllowedInClass = Abstract | Final,
   AllowedOnMethod = Abstract | Final | Public | Protected | Private | Static,

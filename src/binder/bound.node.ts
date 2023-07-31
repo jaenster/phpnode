@@ -38,6 +38,7 @@ export enum BoundKind {
   BoundWhileStatement,
   BoundEchoStatement,
   BoundFunctionStatement,
+  BoundMethodStatement,
   BoundClassStatement,
   BoundPropertyStatement,
 }

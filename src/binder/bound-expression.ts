@@ -1,6 +1,7 @@
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BoundBinaryOperator, BoundUnaryOperator} from "./bound-operator.js";
 import {BoundKind} from "./bound.node.js";
+import {BoundClassStatement, BoundFunctionStatement} from "./bound-statement.js";
 
 export type BoundExpression = (
   | BoundAssignmentExpression
@@ -13,6 +14,10 @@ export type BoundExpression = (
   | BoundLiteralExpression
   | BoundUnaryExpression
   | BoundVariableExpression
+
+  // Some statements are valid expressions
+  | BoundClassStatement
+  | BoundFunctionStatement
   )
 export type BoundAssignmentExpression = {
   kind: BoundKind.BoundAssignmentExpression,
