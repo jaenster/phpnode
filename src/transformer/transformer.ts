@@ -32,8 +32,8 @@ import {
   BoundVariableExpression
 } from "../binder/bound-expression.js";
 import {BoundFile} from "../binder/bound-special.js";
-import {BoundModifiers} from "../binder/bound-modifiers.js";
-
+import {BoundScope} from "../binder/bound-scope.js";
+import {TypeSymbol} from "../symbols/symbols.js";
 
 export abstract class Transformer {
 
@@ -49,7 +49,7 @@ export abstract class Transformer {
 
     if (changed) {
       const filename = node.filename;
-      return createBoundStatement({kind: BoundKind.BoundFile, statements, filename});
+      return createBoundStatement({kind: BoundKind.BoundFile, statements, filename, scope: node.scope});
     }
 
     return node as BoundFile & BoundNode;
@@ -227,6 +227,12 @@ export abstract class Transformer {
   // Expressions
   transformExpression(node: BoundExpression): BoundExpression {
     if (node) switch (node.kind) {
+      case BoundKind.BoundEmptyExpression:
+        return node;
+      case BoundKind.BoundClassStatement:
+        return this.transformClassStatement(node);
+      case BoundKind.BoundFunctionStatement:
+        return this.transformFunction(node);
       case BoundKind.BoundErrorExpression:
         return this.transformErrorExpression(node);
       case BoundKind.BoundAssignmentExpression:
@@ -243,7 +249,9 @@ export abstract class Transformer {
         return this.transformLiteralExpression(node);
       case BoundKind.BoundUnaryExpression:
         return this.transformUnaryExpression(node);
+
     }
+    throw new Error('Unexpected expression '+BoundKind[node?.kind]);
   }
 
   transformErrorExpression(node: BoundErrorExpression) {
@@ -299,8 +307,8 @@ export abstract class Transformer {
     }
 
     if (changed) {
-      const last = expressions[expressions.length]
-      return createBoundExpression({kind: BoundKind.BoundCommaExpression, type: last.type, expressions});
+      const last = expressions[expressions.length-1]
+      return createBoundExpression({kind: BoundKind.BoundCommaExpression, type: last.type ?? TypeSymbol.void, expressions});
     }
 
     return node;
@@ -347,6 +355,7 @@ export abstract class Transformer {
         parameters: node.parameters,
         name: node.name,
         type: node.type,
+        scope: node.scope,
       })
     }
     return node;
@@ -362,6 +371,7 @@ export abstract class Transformer {
         modifiers: node.modifiers,
         name: node.name,
         type: node.type,
+        scope: node.scope,
       })
     }
     return node;
@@ -371,7 +381,7 @@ export abstract class Transformer {
     return node;
   }
 
-  transformClassStatement(node: BoundClassStatement) {
+  transformClassStatement(node: BoundClassStatement): BoundClassStatement {
     const methods: BoundMethodStatement[] = [];
     const properties: BoundPropertyStatement[] = [];
     let isNew = false;
@@ -396,8 +406,16 @@ export abstract class Transformer {
         properties,
         name: node.name,
         type: node.type,
+        scope: node.scope,
       })
     }
     return node;
+  }
+
+
+  *traverse(start: BoundStatement) {
+    for(const node of BoundNode.flat(start)) {
+
+    }
   }
 }

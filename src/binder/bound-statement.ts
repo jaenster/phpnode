@@ -3,6 +3,7 @@ import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {BoundKind} from "./bound.node.js";
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BoundModifiers} from "./bound-modifiers.js";
+import {BoundScope} from "./bound-scope.js";
 
 export type BoundStatement =
   | BoundBlockStatement
@@ -110,6 +111,7 @@ export type BoundFunctionStatement = {
   parameters: BoundParameter[],
   type: TypeSymbol,
   name?: string,
+  scope: BoundScope,
 }
 export type BoundClassStatement = {
   kind: BoundKind.BoundClassStatement,
@@ -118,9 +120,11 @@ export type BoundClassStatement = {
   modifiers: BoundModifiers,
   properties: BoundPropertyStatement[],
   type: TypeSymbol,
+  scope: BoundScope,
 }
 export type BoundPropertyStatement = {
   kind: BoundKind.BoundPropertyStatement,
   modifiers: BoundModifiers,
   name: string,
+  init?: BoundExpression;
 }

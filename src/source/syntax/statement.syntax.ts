@@ -78,6 +78,8 @@ export type PropertyStatementSyntax = {
   modifiers: SyntaxToken[],
   identifier: SyntaxToken,
   type: SyntaxToken,
+  init?: ExpressionSyntax,
+  equal?: SyntaxToken
 }
 export type ReturnStatementSyntax = {
   kind: SyntaxNodeKind.ReturnStatementSyntax,

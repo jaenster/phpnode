@@ -35,8 +35,9 @@ export enum SyntaxKind {
   TildeToken,
   DotToken,
   SemiColonToken,
-  DollarToken,
+  VariableToken,
   AtToken,
+  ArrowToken, // ->
 
 
   // Virtual

@@ -1,7 +1,7 @@
 import {BoundExpression} from "./bound-expression.js";
 import {BoundFile, BoundSpecial} from "./bound-special.js";
 import {BoundBinaryOperatorKind, BoundUnaryOperatorKind} from "./bound-operator.js";
-import {BoundStatement} from "./bound-statement.js";
+import {BoundExpressionStatement, BoundStatement} from "./bound-statement.js";
 
 export enum BoundKind {
   // Expressions
@@ -41,10 +41,6 @@ export enum BoundKind {
   BoundMethodStatement,
   BoundClassStatement,
   BoundPropertyStatement,
-}
-
-class Foo {
-  foo;
 }
 
 export type BoundNodeTypes = BoundExpression | BoundStatement | BoundSpecial;
@@ -118,6 +114,9 @@ export class BoundNode {
         node.prettyPrint(indent, last === node);
       } else if (Array.isArray(node)) {
         for (const child of (node as any)) {
+          if (!child) {
+            console.log()
+          }
           child.prettyPrint(indent, last === child);
         }
       }
@@ -151,6 +150,47 @@ export class BoundNode {
         case BoundKind.BoundVariableStatement:
         case BoundKind.BoundWhileStatement:
           yield statement
+          break;
+      }
+    }
+  }
+
+  static* flatExpression(expression: (BoundExpression) | Array<BoundExpression>) {
+    if (Array.isArray(expression)) {
+      for (const child of expression) {
+        yield* this.flatExpression(child);
+      }
+    } else {
+      switch(expression.kind) {
+        case BoundKind.BoundEmptyExpression:
+        case BoundKind.BoundVariableExpression:
+        case BoundKind.BoundLiteralExpression:
+        case BoundKind.BoundNameExpression:
+          yield expression
+          break;
+        case BoundKind.BoundAssignmentExpression:
+          yield expression;
+          yield expression.expression;
+          break;
+        case BoundKind.BoundBinaryExpression:
+          yield expression
+          yield *this.flatExpression(expression.left)
+          yield *this.flatExpression(expression.right)
+          break;
+
+        case BoundKind.BoundCommaExpression:
+          yield expression
+          yield *this.flatExpression(expression.expressions);
+          break;
+        case BoundKind.BoundUnaryExpression:
+          yield expression
+          yield *this.flatExpression(expression.operand)
+          break;
+
+          // Those start a new scope; So its not part of this expressions
+        case BoundKind.BoundClassStatement:
+          break;
+        case BoundKind.BoundFunctionStatement:
           break;
       }
     }

@@ -1,12 +1,33 @@
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 
+function weak<T extends object>() {
+  let ref: WeakRef<T>;
+
+  return (value: T, context: DecoratorContext) => {
+    const {kind, name} = context;
+    if (kind === "field") {
+      context.access.get = function () {
+        return ref?.deref();
+      }
+      context.access.set = function (v: T) {
+        ref = v ? new WeakRef<T>(v) : undefined;
+        return true;
+      }
+    }
+  }
+}
+
 export class BoundScope {
   public readonly variables = new Map<string, VariableSymbol>();
   public readonly types = new Map<string, TypeSymbol>();
 
+  @weak()
+  public readonly parent?: BoundScope;
+
   constructor(
-    public readonly parent?: BoundScope,
+    parent?: BoundScope
   ) {
+    this.parent = parent;
   }
 
   tryDeclare(variable: VariableSymbol) {
@@ -55,4 +76,7 @@ export class BoundScope {
     return Array.from(this.variables.values());
   }
 
+  createChild() {
+    return new BoundScope(this);
+  }
 }

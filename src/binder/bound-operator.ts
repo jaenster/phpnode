@@ -20,9 +20,18 @@ export enum BoundBinaryOperatorKind {
   BitwiseXor,
   PostInfix,
   MethodCall,
+  FunctionCall,
+  New,
+  MemberAccess,
 }
 
+function isType(type1: TypeSymbol, type2: TypeSymbol) {
+  return type1 === type2 || type1 === TypeSymbol.any || type2 === TypeSymbol.any;
+}
+
+
 export class BoundBinaryOperator {
+  private name: string;
   private constructor(
     public readonly syntaxKind: SyntaxKind,
     public readonly kind: BoundBinaryOperatorKind,
@@ -33,10 +42,11 @@ export class BoundBinaryOperator {
 
     this.rightType ??= leftType;
     this.resultType ??= leftType;
-
+    this.name = BoundBinaryOperatorKind[kind];
   }
 
-  static call = new BoundBinaryOperator(SyntaxKind.ParenLToken, BoundBinaryOperatorKind.MethodCall, TypeSymbol.func);
+  static call = new BoundBinaryOperator(SyntaxKind.ParenLToken, BoundBinaryOperatorKind.FunctionCall, TypeSymbol.func);
+  static memberCall = new BoundBinaryOperator(SyntaxKind.ParenLToken, BoundBinaryOperatorKind.MethodCall, TypeSymbol.any);
 
   private static operator = [
     new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.int),
@@ -67,14 +77,16 @@ export class BoundBinaryOperator {
 
     new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.string),
 
+    new BoundBinaryOperator(SyntaxKind.ArrowToken, BoundBinaryOperatorKind.MemberAccess, TypeSymbol.any),
+    this.memberCall,
     this.call,
   ]
 
   static bind(syntaxKind: SyntaxKind, left: BoundExpression, right: BoundExpression) {
     for (const op of this.operator) {
-      if (op.syntaxKind === syntaxKind && op.leftType === left.type) {
+      if (op.syntaxKind === syntaxKind && isType(op.leftType, left.type)) {
         // Simple operators
-        if (right.type === op.rightType) return op;
+        if (isType(op.rightType, right.type)) return op;
       }
     }
   }
@@ -91,6 +103,7 @@ export enum BoundUnaryOperatorKind {
   PostFixDecrease,
 
   Optional,
+  New,
 }
 
 export class BoundUnaryOperator {
@@ -120,11 +133,13 @@ export class BoundUnaryOperator {
 
     // a?.test(), the question mark
     new BoundUnaryOperator(SyntaxKind.ExclamationToken, BoundUnaryOperatorKind.Optional, TypeSymbol.Object, TypeSymbol.self, true),
+
+    new BoundUnaryOperator(SyntaxKind.NewKeyword, BoundUnaryOperatorKind.New, TypeSymbol.any),
   ]
 
   static bind(syntaxKind: SyntaxKind, opType: TypeSymbol, post: boolean = false) {
     for (const op of this.operator) {
-      if (op.syntaxKind === syntaxKind && opType === op.opType && post === op.post) {
+      if (op.syntaxKind === syntaxKind && isType(opType, op.opType) && post === op.post) {
         return op;
       }
     }

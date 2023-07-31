@@ -251,9 +251,11 @@ export class Binder {
     // upsert / override variable
     let [has, variable] = this.scope.tryLookup(name);
     if (!has) {
-      this.diagnostics.reportUndefinedName(syntax.identifier.span, name);
-      return expression;
+      // Variable is created here in the current scope
+      variable = new VariableSymbol(name, false, TypeSymbol.any);
+      this.scope.tryDeclare(variable);
     }
+
 
     if (variable.isReadonly) {
       this.diagnostics.reportCannotAssign(syntax.operator.span, name)
@@ -307,10 +309,11 @@ export class Binder {
       return createBoundExpression({kind: BoundKind.BoundLiteralExpression, type: TypeSymbol.error, value: 0})
     }
 
-    const [has, variable] = this.scope.tryLookup(name);
+    let [has, variable] = this.scope.tryLookup(name);
     if (!has) {
-      this.diagnostics.reportUndefinedName(syntax.id.span, name);
-      return createBoundExpression({kind: BoundKind.BoundLiteralExpression, type: TypeSymbol.error, value: 0})
+      // Sadly, in the way php works, this has to be a placeholder. We cant throw a compile error here due to
+      // the way its dynamically typed
+      variable = new VariableSymbol(name, false, TypeSymbol.func);
     }
 
     return createBoundExpression({kind: BoundKind.BoundNameExpression, type: variable.type, variable});
@@ -334,8 +337,8 @@ export class Binder {
     if (operand.type === TypeSymbol.error) {
       return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error});
     }
-    const operator = BoundUnaryOperator.bind(syntax.operator.kind, operand.type, syntax.post)
 
+    const operator = BoundUnaryOperator.bind(syntax.operator.kind, operand.type, syntax.post)
     if (!operator) {
       this.diagnostics.reportUndefinedUnaryOperator(syntax.operator.span, syntax.operator.text);
       return operand;
@@ -387,7 +390,7 @@ export class Binder {
       statements.push(this.bindStatement(statement));
     }
 
-    return createBoundStatement({kind: BoundKind.BoundFile, statements, filename: file.filename})
+    return createBoundStatement({kind: BoundKind.BoundFile, statements, filename: file.filename, scope: this.scope})
   }
 
 
@@ -405,10 +408,13 @@ export class Binder {
   }
 
   private bindMethodStatement(syntax: FunctionStatementSyntax): BoundMethodStatement {
+    const scope = this.wrapScope()
+
     const body = this.bindBlockStatement(syntax.body);
     const modifiers = this.bindModifiers(BoundModifiers.AllowedOnMethod, syntax.modifiers, 'method');
     const parameters = syntax.parameters.map(el => this.bindParameter(el));
 
+    this.unwrapScope()
     return createBoundStatement({
       kind: BoundKind.BoundMethodStatement,
       body,
@@ -416,6 +422,7 @@ export class Binder {
       parameters: parameters,
       name: syntax.identifier.text,
       type: TypeSymbol.func,
+      scope,
     })
   }
 
@@ -425,11 +432,22 @@ export class Binder {
     return createBoundStatement({
       kind: BoundKind.BoundPropertyStatement,
       modifiers,
-      name: syntax.identifier.text
+      name: syntax.identifier.text,
+      init: syntax.init ? this.bindExpression(syntax.init) : undefined,
     })
   }
 
+  private wrapScope() {
+    return this.scope = this.scope.createChild();
+  }
+
+  private unwrapScope() {
+    this.scope = this.scope.parent;
+  }
+
   private bindClassStatement(syntax: ClassStatementSyntax) {
+    const scope = this.wrapScope();
+
     const modifiers = this.bindModifiers(BoundModifiers.AllowedInClass, syntax.modifiers, 'class');
 
     const methods: BoundMethodStatement[] = [];
@@ -442,13 +460,15 @@ export class Binder {
       properties.push(this.bindPropertiesStatement(member))
     }
 
+    this.unwrapScope();
     return createBoundStatement({
-      name: syntax.name.text,
       kind: BoundKind.BoundClassStatement,
+      name: syntax.name.text,
       modifiers,
       methods,
       properties,
       type: TypeSymbol.class,
+      scope,
     })
   }
 

@@ -4,7 +4,8 @@ import {Diagnostics} from "../common/diagnostics.js";
 import {
   BlockStatementSyntax,
   ExpressionStatementSyntax,
-  FunctionStatementSyntax, PropertyStatementSyntax,
+  FunctionStatementSyntax,
+  PropertyStatementSyntax,
   StatementSyntax,
   VariableStatementSyntax
 } from "./syntax/statement.syntax.js";
@@ -250,7 +251,7 @@ export class Parser {
   }
 
   private parseAssignmentExpression(): ExpressionSyntax & SyntaxNode {
-    if (this.peek(0).kind == SyntaxKind.IdentifierToken
+    if (this.peek(0).kind == SyntaxKind.VariableToken
       && this.peek(1).kind == SyntaxKind.EqualToken) {
 
       const identifier = this.nextToken();
@@ -362,6 +363,10 @@ export class Parser {
           type: TypeSymbol.string
         });
 
+      case SyntaxKind.VariableToken:
+        const variable = this.match(SyntaxKind.VariableToken);
+        return createExpressionNode({kind: SyntaxNodeKind.NameExpressionSyntax, id: variable})
+
       case SyntaxKind.IdentifierToken:
         return createExpressionNode({kind: SyntaxNodeKind.NameExpressionSyntax, id: this.nextToken()})
       default:
@@ -443,8 +448,7 @@ export class Parser {
   }
 
   private parseVariable() {
-    this.match(SyntaxKind.DollarToken);
-    return this.match(SyntaxKind.IdentifierToken);
+    return this.match(SyntaxKind.VariableToken);
   }
 
   parseParameters() {
@@ -561,7 +565,7 @@ export class Parser {
     } else {
 
       const [hasType, type] = this.optional(SyntaxKind.IdentifierToken);
-      if (this.current().kind !== SyntaxKind.DollarToken) {
+      if (this.current().kind !== SyntaxKind.VariableToken) {
         this.optional(SyntaxKind.SemiColonToken);
         return createStatementNode({
           kind: SyntaxNodeKind.LiteralExpressionSyntax,
@@ -570,12 +574,17 @@ export class Parser {
         })
       }
       const identifier = this.parseVariable();
+      const [hasInit, equal] = this.optional(SyntaxKind.EqualToken);
+      const init = hasInit && this.parseExpression();
+
       this.optional(SyntaxKind.SemiColonToken);
       return createStatementNode({
         kind: SyntaxNodeKind.PropertyStatementSyntax,
         identifier,
         modifiers,
         type,
+        equal,
+        init,
       })
     }
   }

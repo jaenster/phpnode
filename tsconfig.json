@@ -4,6 +4,9 @@
     "moduleResolution": "node16",
     "target": "es2020",
     "sourceMap": true,
+    "lib": [
+      "es2021.weakref"
+    ]
   },
   "exclude": [
     "node_modules"

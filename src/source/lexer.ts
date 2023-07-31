@@ -186,6 +186,9 @@ export class Lexer {
         if (this.current() === '-') {
           this.position++;
           this.currentKind = SyntaxKind.MinusMinusToken;
+        } else if (this.current() === '>') {
+          this.position++;
+          this.currentKind = SyntaxKind.ArrowToken
         } else {
           this.currentKind = SyntaxKind.MinusToken;
         }
@@ -269,8 +272,8 @@ export class Lexer {
         this.position++
         break;
       case '$':
-        this.currentKind = SyntaxKind.DollarToken;
-        this.position++
+        this.currentKind = SyntaxKind.VariableToken;
+        this.readVariable();
         break;
       case '0':
       case '1':
@@ -376,10 +379,23 @@ export class Lexer {
     } while (current.kind !== SyntaxKind.EOF)
   }
 
-  private readIdentifier() {
-    while (isLetter(this.current()) || isDigit(this.current())) {
+  private readValidIdentifier() {
+    let first = 0;
+    while (isLetter(this.current()) || (first++ === 0 && isDigit(this.current())) || this.current() === '_') {
       this.next();
     }
+  }
+
+  private readVariable() {
+    do {
+      this.next();
+    } while(this.current() == '$')
+
+    this.readValidIdentifier();
+  }
+
+  private readIdentifier() {
+    this.readValidIdentifier()
 
     const length = this.position - this.start;
     const text = this.source.get(this.start, length);

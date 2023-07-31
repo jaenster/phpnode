@@ -33,11 +33,9 @@ export class PhpConcepts extends Transformer {
     })
   }
 
-
   private currentNamespace = '';
 
   private wrapBlockStatement(node: BoundBlockStatement) {
-
     const statements = [];
     let isNew = false;
 
@@ -63,14 +61,14 @@ export class PhpConcepts extends Transformer {
     // In php anything is accessible from global scope (even if namespaced)
     // Simply wrap everything to make it available in a global namespace under a variable in js
 
-    const left = createBoundExpression({
+    const tmpLeft = createBoundExpression({
       kind: BoundKind.BoundNameExpression,
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalNamespace,
     });
 
     // Create arguments ('Namespace', 'Foo', async () => class Foo {})
-    const right = createBoundExpression({
+    const tmpRight = createBoundExpression({
       kind: BoundKind.BoundCommaExpression,
       type: TypeSymbol.any,
       expressions: [
@@ -91,6 +89,7 @@ export class PhpConcepts extends Transformer {
           kind: BoundKind.BoundFunctionStatement,
           type: TypeSymbol.func,
           parameters: [],
+          scope: node.scope.createChild(),
           body: createBoundStatement({
             kind: BoundKind.BoundBlockStatement,
             statements: [
@@ -104,6 +103,11 @@ export class PhpConcepts extends Transformer {
         })
       ],
     });
+
+    // Allow rewriting on these expressions. (e.g. variable hoisting in the child function)
+    const left = this.transformExpression(tmpLeft);
+    const right = this.transformExpression(tmpRight);
+
     const operator = BoundBinaryOperator.call
 
     // An echo statement is just a call to print
@@ -134,7 +138,6 @@ export class PhpConcepts extends Transformer {
   transformFile(arg: BoundFile): BoundFile & BoundNode {
     const parent = super.transformFile(arg);
 
-
     const statements: BoundStatement[] = [];
     let isNew = false;
     // wrap all outer scope statements scopes
@@ -149,6 +152,7 @@ export class PhpConcepts extends Transformer {
         kind: BoundKind.BoundFile,
         statements,
         filename: arg.filename,
+        scope: arg.scope,
       })
     }
 

@@ -1,6 +1,7 @@
 import {VariableSymbol} from "../symbols/symbols.js";
 import {BoundKind} from "./bound.node.js";
 import {BoundStatement} from "./bound-statement.js";
+import {BoundScope} from "./bound-scope.js";
 
 export type BoundSpecial =
   | BoundElse
@@ -28,4 +29,5 @@ export type BoundFile = {
   kind: BoundKind.BoundFile,
   statements: BoundStatement[],
   filename: string,
+  scope: BoundScope,
 }

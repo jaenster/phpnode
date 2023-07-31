@@ -27,19 +27,47 @@ import {
   BoundWhileStatement
 } from "../binder/bound-statement.js";
 import {ToSource} from "./to-source.js";
-import {BoundBinaryOperator} from "../binder/bound-operator.js";
-import {KeywordsBySyntax} from "../source/syntax/keywords.js";
+import {BoundBinaryOperator, BoundBinaryOperatorKind, BoundUnaryOperatorKind} from "../binder/bound-operator.js";
+import {KeywordsByName, KeywordsBySyntax} from "../source/syntax/keywords.js";
+import {BoundScope} from "../binder/bound-scope.js";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);
 }
 
+
+const binaryOperators = {
+  [BoundBinaryOperatorKind.Addition]: '+',
+  [BoundBinaryOperatorKind.MemberAccess]: '.',
+} as const
+
+const unaryOperators = {
+  [BoundUnaryOperatorKind.New]: KeywordsBySyntax[KeywordsByName.new],
+} as const
+
 export class Javascript extends ToSource {
+
+  toSourceDeclareVariables(scope: BoundScope) {
+    // In javascript, variables need to exist before they are used
+    // They are block scoped too, to avoid issues with it, abuse the way javascript works
+
+    const names = [];
+    for(const name of scope.variables.keys()) {
+      names.push(name);
+    }
+
+    return names.length ? 'let '+names.join(', ') : '';
+  }
+
   toSourceFileStatement(node: BoundFile): string {
     const source = [
       `//Transpiled
 export default __php__file("${escape(node.filename)})", async () => {`
     ];
+
+    const declarations = this.toSourceDeclareVariables(node.scope);
+    if (declarations) source.push(declarations);
+
     for (const statement of node.statements) {
       source.push(this.toSourceStatement(statement));
     }
@@ -58,10 +86,13 @@ export default __php__file("${escape(node.filename)})", async () => {`
     const operator = node.operator;
 
     if (operator === BoundBinaryOperator.call) {
-      return 'await '+left+"("+right+")";
+      return 'await ('+left+"("+right+"))";
+    } else if (operator === BoundBinaryOperator.memberCall) {
+      return 'await ('+left+"("+right+"))";
     }
 
-    return left +KeywordsBySyntax[node.operator.syntaxKind]+right;
+    const operatorString = binaryOperators[node.operator.kind];
+    return left +operatorString+right;
   }
 
   toSourceBlockStatement(node: BoundBlockStatement): string {
@@ -123,7 +154,9 @@ export default __php__file("${escape(node.filename)})", async () => {`
   }
 
   toSourceUnaryExpression(node: BoundUnaryExpression): string {
-    return "";
+    const content = this.toSourceExpression(node.operand);
+    const operator = unaryOperators[node.operator.kind];
+    return node.operator.post ? content + operator : operator +' '+content;
   }
 
   toSourceVariableExpression(node: BoundVariableExpression): string {
@@ -144,7 +177,7 @@ export default __php__file("${escape(node.filename)})", async () => {`
 
   toSourceFunctionStatement(node: BoundFunctionStatement) {
     const lines = [];
-    lines.push(`function ${node.name ?? ''}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
+    lines.push(`async function ${node.name ?? ''}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
     lines.push(this.toSourceStatement(node.body));
     lines.push(`}`)
     return lines.join('\n');

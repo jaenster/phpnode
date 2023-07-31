@@ -45,6 +45,11 @@ export class PHPFile {
     const transformed = transformer.transformFile(bound);
     transformed.prettyPrint();
 
+    if (this.diagnostic.items.length) {
+      this.source.printDiagnostics(this.diagnostic);
+    }
+
+
     const toJs = new Javascript();
     const result = toJs.toSourceFileStatement(transformed);
 

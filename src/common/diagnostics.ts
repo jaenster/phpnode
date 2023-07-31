@@ -21,51 +21,50 @@ export class Diagnostics {
   }
 
   reportCanOnlyUsePostfixOnNameExpression(span: TextSpan) {
-
+    this.report(span, `Cannot use postfix on anything other as a named expression`)
   }
 
   reportUnexpectedToken(span: TextSpan, kind: SyntaxKind, kind2: SyntaxKind) {
-
+    this.report(span, `Unexpected token ${SyntaxKind[kind]}, expected ${SyntaxKind[kind2]}`);
   }
 
   reportNeedSemicolon(span: TextSpan) {
-
+    this.report(span, 'Needed semicolon');
   }
 
-  reportTypeDoesntExists(span: TextSpan, text: string) {
-
+  reportTypeDoesntExists(span: TextSpan, type: string) {
+    this.report(span, `type ${type} does not exists`);
   }
 
   reportCannotRedeclare(span: TextSpan, text: string) {
-
+    this.report(span, `Cant redeclare ${text}}`);
   }
 
   reportUndefinedName(span: TextSpan, name: string) {
-
+    this.report(span, `Undefined name ${name}`);
   }
 
   reportCannotAssign(span: TextSpan, name: string) {
-
+    this.report(span, `Cannot assign ${name}`);
   }
 
-  reportCannotConvert(span: TextSpan, type: TypeSymbol, type2) {
-
+  reportCannotConvert(span: TextSpan, type: TypeSymbol, type2: TypeSymbol) {
+    this.report(span, `Cannot convert ${type} to ${type2}`);
   }
 
   reportUndefinedBinaryOperator(span: TextSpan, text: string, type: TypeSymbol, type2: TypeSymbol) {
-
+    this.report(span, `Undefined operator for ${type} ${text} ${type2}`);
   }
 
   reportUndefinedUnaryOperator(span: TextSpan, text: string) {
-
-  }
-
-  reportCannotContinue(span: TextSpan) {
-
+    this.report(span, `undefined operator for ${text}`);
   }
 
   reportCannotBreak(span: TextSpan) {
-
+    this.report(span, `cannot break without being in a loop`);
+  }
+  reportCannotContinue(span: TextSpan) {
+    this.report(span, `cannot break without being in a loop`);
   }
 
   reportModifierNotAllowed(span: TextSpan, on: string) {
