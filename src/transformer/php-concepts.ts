@@ -7,10 +7,10 @@ import {
 } from "../binder/bound-statement.js";
 import {BoundKind, BoundNode, createBoundExpression, createBoundStatement} from "../binder/bound.node.js";
 import {BoundBinaryOperator, BoundBinaryOperatorKind} from "../binder/bound-operator.js";
-import {TypeSymbol} from "../symbols/symbols.js";
+import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BuiltinFunctions} from "../symbols/buildin-functions.js";
 import {BoundFile} from "../binder/bound-special.js";
-import {BoundExpression, BoundNameExpression} from "../binder/bound-expression.js";
+import {BoundBinaryExpression, BoundExpression, BoundNameExpression} from "../binder/bound-expression.js";
 import {Modifiers} from "../source/syntax/syntax.facts.js";
 
 export class PhpConcepts extends Transformer {
@@ -35,6 +35,45 @@ export class PhpConcepts extends Transformer {
         modifiers: 0,
       })
     })
+  }
+
+  wrapWithStringCast(node: BoundExpression): BoundExpression {
+    // Already a string, no need to convert
+    if (node.type === TypeSymbol.string) {
+      return node;
+    }
+
+    // Wrap in function call String(node)
+    return createBoundExpression({
+      kind: BoundKind.BoundBinaryExpression,
+      type: TypeSymbol.string,
+      left: createBoundExpression({
+        kind: BoundKind.BoundNameExpression,
+        type: TypeSymbol.func,
+        variable: new VariableSymbol('String', true, TypeSymbol.func),
+        modifiers: 0,
+      }),
+      right: node,
+      operator: BoundBinaryOperator.call,
+      modifiers: 0,
+    })
+  }
+
+  transformBinaryExpression(node: BoundBinaryExpression): BoundExpression {
+
+    // Transform "foo" . 5 to "foo" + String("foo")
+    if (node.operator.kind === BoundBinaryOperatorKind.Concatenation) {
+      return createBoundExpression({
+        kind: BoundKind.BoundBinaryExpression,
+        left: this.wrapWithStringCast(this.transformExpression(node.left)),
+        right: this.wrapWithStringCast(this.transformExpression(node.right)),
+        operator: BoundBinaryOperator.addition,
+        type: TypeSymbol.string,
+        modifiers: 0,
+      })
+    }
+
+    return super.transformBinaryExpression(node);
   }
 
   private currentNamespace = '';

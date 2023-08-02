@@ -262,7 +262,7 @@ export class Binder {
       return expression;
     }
 
-    if (expression.type !== variable.type) {
+    if (expression.type !== variable.type && variable.type !== TypeSymbol.any && expression.type !== TypeSymbol.any) {
       this.diagnostics.reportCannotConvert(syntax.expression.span, expression.type, variable.type)
       return expression;
     }
@@ -280,6 +280,8 @@ export class Binder {
 
     const operator = BoundBinaryOperator.bind(syntax.operator.kind, left, right);
     if (!operator) {
+
+      // Function calls
       let span: TextSpan = syntax.operator.span;
       if (syntax.operator.kind === SyntaxKind.ParenLToken) {
         if (right.kind === BoundKind.BoundEmptyExpression) {
@@ -289,6 +291,7 @@ export class Binder {
           span = new TextSpan(span.start, rightSpan.end)
         }
       }
+
       this.diagnostics.reportUndefinedBinaryOperator(span, syntax.operator.text, left.type, right.type);
       return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error});
     }

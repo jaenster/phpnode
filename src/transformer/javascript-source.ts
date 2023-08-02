@@ -30,6 +30,7 @@ import {BoundBinaryOperator, BoundBinaryOperatorKind, BoundUnaryOperatorKind} fr
 import {KeywordsByName, KeywordsBySyntax} from "../source/syntax/keywords.js";
 import {BoundScope} from "../binder/bound-scope.js";
 import {Modifiers} from "../source/syntax/syntax.facts.js";
+import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);
@@ -96,6 +97,9 @@ export default __php__file("${escape(node.filename)}", async () => {`
     }
 
     const operatorString = binaryOperators[node.operator.kind];
+    if (operatorString === undefined) {
+      throw new Error('operator '+BoundBinaryOperatorKind[node.operator.kind]+' does not exists in javascript');
+    }
     return left + operatorString + right;
   }
 

@@ -10,7 +10,7 @@ const enum PrecedenceKind {
   BitwiseXor,
 
   Equality,
-  AdditionSubtraction,
+  AdditionSubtraction, // Plus Minus Concatenation(.)
   MultiplicationDivision,
 
   Unary,
@@ -63,6 +63,7 @@ export function getBinaryOperatorPrecedence(kind: SyntaxKind) {
 
     case SyntaxKind.PlusToken:
     case SyntaxKind.MinusToken:
+    case SyntaxKind.DotToken:
       return PrecedenceKind.AdditionSubtraction;
 
     case SyntaxKind.EqualEqualToken:

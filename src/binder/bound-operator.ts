@@ -5,6 +5,7 @@ import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 export enum BoundBinaryOperatorKind {
   Addition,
   Subtraction,
+  Concatenation,
   Multiplication,
   Division,
   LogicalAnd,
@@ -30,6 +31,7 @@ function isType(type1: TypeSymbol, type2: TypeSymbol) {
 
 export class BoundBinaryOperator {
   private name: string;
+
   private constructor(
     public readonly syntaxKind: SyntaxKind,
     public readonly kind: BoundBinaryOperatorKind,
@@ -45,6 +47,7 @@ export class BoundBinaryOperator {
 
   static call = new BoundBinaryOperator(SyntaxKind.ParenLToken, BoundBinaryOperatorKind.FunctionCall, TypeSymbol.func);
   static memberCall = new BoundBinaryOperator(SyntaxKind.ParenLToken, BoundBinaryOperatorKind.MethodCall, TypeSymbol.any);
+  static addition = new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.any);
 
   private static operator = [
     new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.int),
@@ -73,11 +76,13 @@ export class BoundBinaryOperator {
     new BoundBinaryOperator(SyntaxKind.EqualEqualToken, BoundBinaryOperatorKind.Equals, TypeSymbol.bool),
     new BoundBinaryOperator(SyntaxKind.ExclamationEqualToken, BoundBinaryOperatorKind.NotEquals, TypeSymbol.bool),
 
-    new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.string),
+    this.addition,
+    new BoundBinaryOperator(SyntaxKind.DotToken, BoundBinaryOperatorKind.Concatenation, TypeSymbol.any, TypeSymbol.any, TypeSymbol.string),
 
     new BoundBinaryOperator(SyntaxKind.ArrowToken, BoundBinaryOperatorKind.MemberAccess, TypeSymbol.any),
     this.memberCall,
     this.call,
+
   ]
 
   static bind(syntaxKind: SyntaxKind, left: BoundExpression, right: BoundExpression) {
@@ -106,6 +111,7 @@ export enum BoundUnaryOperatorKind {
 
 export class BoundUnaryOperator {
   public readonly name: string
+
   private constructor(
     public readonly syntaxKind: SyntaxKind,
     public readonly kind: BoundUnaryOperatorKind,
