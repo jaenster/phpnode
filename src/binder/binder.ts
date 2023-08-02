@@ -29,7 +29,7 @@ import {
   WhileStatementSyntax
 } from "../source/syntax/statement.syntax.js";
 import {SyntaxNodeKind} from "../source/syntax/syntax.node.js";
-import {BoundKind, createBoundExpression, createBoundSpecial, createBoundStatement} from "./bound.node.js";
+import {BoundKind, BoundNode, createBoundExpression, createBoundSpecial, createBoundStatement} from "./bound.node.js";
 import {ElseClause, FileSyntax, ParametersSyntax} from "../source/syntax/special.syntax.js";
 import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {MapExt} from "map-ext";
@@ -45,11 +45,11 @@ import {
   UnaryExpressionSyntax
 } from "../source/syntax/expression.syntax.js";
 import {BoundExpression} from "./bound-expression.js";
-import {BoundBinaryOperator, BoundUnaryOperator} from "./bound-operator.js";
+import {BoundBinaryOperator, BoundUnaryOperator, BoundUnaryOperatorKind} from "./bound-operator.js";
 import {TextSpan} from "../common/text-span.js";
 import {SyntaxKind} from "../source/syntax/syntax.kind.js";
-import {BoundModifiers, ModifierMapping} from "./bound-modifiers.js";
 import {SyntaxToken} from "../source/lexer.js";
+import {ModifierMapping, Modifiers} from "../source/syntax/syntax.facts.js";
 
 export class Binder {
   private currentLoop: Array<Omit<BoundBodyStatement, 'statement'>> = [];
@@ -298,7 +298,8 @@ export class Binder {
       left,
       operator,
       right,
-      type: operator.resultType
+      type: operator.resultType,
+      modifiers: 0,
     });
   }
 
@@ -337,7 +338,7 @@ export class Binder {
   }
 
   bindUnaryExpression(syntax: UnaryExpressionSyntax) {
-    const operand = this.bindExpression(syntax.operand);
+    let operand = this.bindExpression(syntax.operand);
     if (operand.type === TypeSymbol.error) {
       return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error});
     }
@@ -346,6 +347,15 @@ export class Binder {
     if (!operator) {
       this.diagnostics.reportUndefinedUnaryOperator(syntax.operator.span, syntax.operator.text);
       return operand;
+    }
+
+    if (operator.kind === BoundUnaryOperatorKind.New) {
+      // Support syntax "new Foo" without parens
+      if (operand.kind === BoundKind.BoundNameExpression) {
+        const right = createBoundExpression({kind: BoundKind.BoundEmptyExpression, type: TypeSymbol.void})
+        operand = createBoundExpression({kind: BoundKind.BoundBinaryExpression, left: operand, right: right, type: TypeSymbol.any, modifiers: 0, operator: BoundBinaryOperator.memberCall})
+      }
+
     }
 
     return createBoundExpression({kind: BoundKind.BoundUnaryExpression, type: operator.resultType, operand, operator});
@@ -387,7 +397,7 @@ export class Binder {
   }
 
 
-  bindAst(file: FileSyntax): BoundFile {
+  bindAst(file: FileSyntax): BoundFile&BoundNode {
 
     const statements: BoundStatement[] = []
     for(const statement of file.body) {
@@ -398,7 +408,7 @@ export class Binder {
   }
 
 
-  private bindModifiers(allowed: BoundModifiers, modifiers: SyntaxToken[], on: string) {
+  private bindModifiers(allowed: Modifiers, modifiers: SyntaxToken[], on: string) {
     let mods = 0;
     for(const modifier of modifiers) {
       const flag = ModifierMapping[String(modifier.kind)];
@@ -415,7 +425,7 @@ export class Binder {
     const scope = this.wrapScope()
 
     const body = this.bindBlockStatement(syntax.body);
-    const modifiers = this.bindModifiers(BoundModifiers.AllowedOnMethod, syntax.modifiers, 'method');
+    const modifiers = this.bindModifiers(Modifiers.AllowedOnMethod, syntax.modifiers, 'method');
     const parameters = syntax.parameters.map(el => this.bindParameter(el));
 
     this.unwrapScope()
@@ -431,7 +441,7 @@ export class Binder {
   }
 
   private bindPropertiesStatement(syntax: PropertyStatementSyntax): BoundPropertyStatement {
-    const modifiers = this.bindModifiers(BoundModifiers.AllowedOnProperty, syntax.modifiers, 'property');
+    const modifiers = this.bindModifiers(Modifiers.AllowedOnProperty, syntax.modifiers, 'property');
 
     return createBoundStatement({
       kind: BoundKind.BoundPropertyStatement,
@@ -452,7 +462,7 @@ export class Binder {
   private bindClassStatement(syntax: ClassStatementSyntax) {
     const scope = this.wrapScope();
 
-    const modifiers = this.bindModifiers(BoundModifiers.AllowedInClass, syntax.modifiers, 'class');
+    const modifiers = this.bindModifiers(Modifiers.AllowedInClass, syntax.modifiers, 'class');
 
     const methods: BoundMethodStatement[] = [];
     for(const member of syntax.methods) {

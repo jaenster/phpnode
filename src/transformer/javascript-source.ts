@@ -5,7 +5,7 @@ import {
   BoundCommaExpression,
   BoundEmptyExpression,
   BoundLiteralExpression,
-  BoundNameExpression,
+  BoundNameExpression, BoundParenExpression,
   BoundUnaryExpression,
   BoundVariableExpression
 } from "../binder/bound-expression.js";
@@ -29,6 +29,7 @@ import {ToSource} from "./to-source.js";
 import {BoundBinaryOperator, BoundBinaryOperatorKind, BoundUnaryOperatorKind} from "../binder/bound-operator.js";
 import {KeywordsByName, KeywordsBySyntax} from "../source/syntax/keywords.js";
 import {BoundScope} from "../binder/bound-scope.js";
+import {Modifiers} from "../source/syntax/syntax.facts.js";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);
@@ -45,6 +46,10 @@ const unaryOperators = {
 } as const
 
 export class Javascript extends ToSource {
+
+  toSourceParenExpression(node: BoundParenExpression): string {
+    return "("+this.toSourceExpression(node.expression)+')';
+  }
 
   toSourceDeclareVariables(scope: BoundScope) {
     // In javascript, variables need to exist before they are used
@@ -85,9 +90,9 @@ export default __php__file("${escape(node.filename)}", async () => {`
     const operator = node.operator;
 
     if (operator === BoundBinaryOperator.call) {
-      return 'await (' + left + "(" + right + "))";
+      return 'await ' + left + "(" + right + ")";
     } else if (operator === BoundBinaryOperator.memberCall) {
-      return 'await (' + left + "(" + right + "))";
+      return 'await ' + left + "(" + right + ")";
     }
 
     const operatorString = binaryOperators[node.operator.kind];
@@ -153,11 +158,13 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceUnaryExpression(node: BoundUnaryExpression): string {
-    const content = this.toSourceExpression(node.operand);
+    let content = this.toSourceExpression(node.operand);
     const operator = unaryOperators[node.operator.kind];
 
     if (operator === 'new') {
-      return '(new (' + content + '))';
+      // Quick fix to get rid of stupid statements
+      if (content.startsWith('await')) content = content.substring(5);
+      return '(new ' + content + ')';
     }
 
     return node.operator.post ? content + operator : operator + ' ' + content;
@@ -181,9 +188,8 @@ export default __php__file("${escape(node.filename)}", async () => {`
 
   toSourceFunctionStatement(node: BoundFunctionStatement) {
     const lines = [];
-    lines.push(`async function ${node.name ?? ''}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
+    lines.push(`async function ${node.name ?? ''}(${node.parameters.map(el => el.variable.name).join(', ')})`);
     lines.push(this.toSourceStatement(node.body));
-    lines.push(`}`)
     return lines.join('\n');
   }
 

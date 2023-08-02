@@ -11,7 +11,7 @@ import {TypeSymbol} from "../symbols/symbols.js";
 import {BuiltinFunctions} from "../symbols/buildin-functions.js";
 import {BoundFile} from "../binder/bound-special.js";
 import {BoundExpression, BoundNameExpression} from "../binder/bound-expression.js";
-import {BoundModifiers} from "../binder/bound-modifiers.js";
+import {Modifiers} from "../source/syntax/syntax.facts.js";
 
 export class PhpConcepts extends Transformer {
 
@@ -20,7 +20,7 @@ export class PhpConcepts extends Transformer {
       kind: BoundKind.BoundNameExpression,
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalPrint,
-      modifiers: BoundModifiers.TranspilerInternal,
+      modifiers: Modifiers.TranspilerInternal,
     });
     const right = this.transformExpression(node.expression);
     const operator = BoundBinaryOperator.call
@@ -31,7 +31,8 @@ export class PhpConcepts extends Transformer {
       expression: createBoundExpression({
         kind: BoundKind.BoundBinaryExpression,
         type: operator.resultType,
-        left, operator, right
+        left, operator, right,
+        modifiers: 0,
       })
     })
   }
@@ -40,7 +41,7 @@ export class PhpConcepts extends Transformer {
 
   transformNameExpression(node: BoundNameExpression): BoundExpression {
     // Ignore internal name epxressions to avoid recursion
-    if ((node.modifiers & BoundModifiers.TranspilerInternal) === BoundModifiers.TranspilerInternal) {
+    if ((node.modifiers & Modifiers.TranspilerInternal) === Modifiers.TranspilerInternal) {
       return super.transformNameExpression(node);
     }
 
@@ -54,7 +55,7 @@ export class PhpConcepts extends Transformer {
       kind: BoundKind.BoundNameExpression,
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalUse,
-      modifiers: BoundModifiers.TranspilerInternal,
+      modifiers: Modifiers.TranspilerInternal,
     });
 
     // __php__use(namespaceString, context)
@@ -85,9 +86,14 @@ export class PhpConcepts extends Transformer {
     const operator = BoundBinaryOperator.call
 
     return createBoundExpression({
-      kind: BoundKind.BoundBinaryExpression,
+      kind: BoundKind.BoundParenExpression,
       type: operator.resultType,
-      left, operator, right
+      expression: createBoundExpression({
+        kind: BoundKind.BoundBinaryExpression,
+        type: operator.resultType,
+        left, operator, right,
+        modifiers: Modifiers.TranspilerParen,
+      }),
     })
   }
 
@@ -121,7 +127,7 @@ export class PhpConcepts extends Transformer {
       kind: BoundKind.BoundNameExpression,
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalNamespace,
-      modifiers: BoundModifiers.TranspilerInternal,
+      modifiers: Modifiers.TranspilerInternal,
     });
 
     // Create arguments ('Namespace', 'Foo', async () => class Foo {})
@@ -173,7 +179,8 @@ export class PhpConcepts extends Transformer {
       expression: createBoundExpression({
         kind: BoundKind.BoundBinaryExpression,
         type: operator.resultType,
-        left, operator, right
+        left, operator, right,
+        modifiers: 0,
       })
     })
   }
@@ -185,7 +192,7 @@ export class PhpConcepts extends Transformer {
       case BoundKind.BoundBlockStatement:
         return this.wrapBlockStatement(node);
 
-      // These statements dont add anything to the namespace scope
+      // These statements don't add anything to the namespace scope
       default:
         return node;
     }

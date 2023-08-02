@@ -17,11 +17,13 @@ import {
   SyntaxNodeKind
 } from "./syntax/syntax.node.js";
 import {ElseClause, FileSyntax, ParametersSyntax, TypeClause} from "./syntax/special.syntax.js";
-import {ExpressionSyntax} from "./syntax/expression.syntax.js";
+import {BinaryExpressionSyntax, ExpressionSyntax} from "./syntax/expression.syntax.js";
 import {
   canBePostFixOperator,
   getBinaryOperatorPrecedence,
   getUnaryOperatorPrecedence,
+  ModifierMapping,
+  Modifiers,
   supportsOnlyNameExpression
 } from "./syntax/syntax.facts.js";
 import {TypeSymbol} from "../symbols/symbols.js";
@@ -42,7 +44,7 @@ export class Parser {
 
   // Statements
   private parseStatement(): StatementSyntax {
-    this.lostModifiers = this.parseModifiers();
+    this.lostModifiers = this.parseModifiers(Modifiers.AllowedInClass);
 
     switch (this.current().kind) {
       case SyntaxKind.InsteadofKeyword:
@@ -232,11 +234,11 @@ export class Parser {
     return this.parseAssignmentExpression();
   }
 
-  private parseExpression(): ExpressionSyntax {
+  private parseExpression(): ExpressionSyntax & SyntaxNode {
     return this.parseCommaExpression();
   }
 
-  private parseCommaExpression(): ExpressionSyntax {
+  private parseCommaExpression(): ExpressionSyntax & SyntaxNode {
     const expression = this.parseSingleExpression();
     if (this.current().kind === SyntaxKind.CommaToken) {
       const expressions = [expression];
@@ -274,9 +276,7 @@ export class Parser {
 
     const unaryOperatorPrecedence = getUnaryOperatorPrecedence(this.current().kind, this.peek(1).kind);
     if (unaryOperatorPrecedence != 0 && unaryOperatorPrecedence >= parentPrecedence) {
-
       // Check if it is a unary post fix operator (a++, a--, a?)
-
       let next = this.peek(1);
       if (canBePostFixOperator(next.kind)) {
         const literal = this.parsePrimaryExpression();
@@ -321,14 +321,6 @@ export class Parser {
         const operator = this.current();
         const right = this.parseParenExpression();
         left = createExpressionNode({kind: SyntaxNodeKind.BinaryExpressionSyntax, left, operator, right})
-      } else if (this.current().kind === SyntaxKind.ArrowToken) {
-
-        // Member access is weird, because it can only be followed by a identifier token
-        // And ToDo; later it we need to support variable names via $this->$test, but right now, just identifier tokens
-        const operator = this.nextToken();
-        const right = this.parseBinaryExpression(precedence);
-
-        left = createExpressionNode({kind: SyntaxNodeKind.BinaryExpressionSyntax, left, operator, right});
       } else {
         const operator = this.nextToken();
         const right = this.parseBinaryExpression(precedence);
@@ -353,7 +345,7 @@ export class Parser {
   }
 
   private parsePrimaryExpression(): ExpressionSyntax & SyntaxNode {
-    const current = this.current();
+    let current = this.current();
 
     switch (current.kind) {
       case SyntaxKind.ParenLToken:
@@ -522,24 +514,20 @@ export class Parser {
     });
   }
 
-  private parseModifier() {
-    switch (this.current().kind) {
-      case SyntaxKind.PublicKeyword:
-      case SyntaxKind.VarKeyword:
-      case SyntaxKind.PrivateKeyword:
-      case SyntaxKind.ReadonlyKeyword:
-      case SyntaxKind.FinalKeyword:
-      case SyntaxKind.AbstractKeyword:
-      case SyntaxKind.ProtectedKeyword:
-      case SyntaxKind.StaticKeyword:
+  private parseModifier(allowed: Modifiers) {
+
+    for (const [kind, field] of Object.entries(ModifierMapping)) {
+      if ((field & allowed) === field && this.current().kind === Number(kind)) {
         return this.nextToken();
+      }
     }
-    return undefined
+
+    return undefined;
   }
 
-  private parseModifiers() {
+  private parseModifiers(allowed: Modifiers) {
     const arr = [] as SyntaxToken[]
-    for (let last = this.parseModifier(); last; last = this.parseModifier()) {
+    for (let last = this.parseModifier(allowed); last; last = this.parseModifier(allowed)) {
       arr.push(last)
     }
     return arr;
@@ -565,7 +553,7 @@ export class Parser {
   }
 
   private parseClassMember() {
-    const modifiers = this.parseModifiers();
+    const modifiers = this.parseModifiers(Modifiers.AllowedOnMethod | Modifiers.AllowedOnProperty);
 
     if (this.current().kind === SyntaxKind.FunctionKeyword) {
       return this.parseFunction(modifiers)

@@ -40,6 +40,7 @@ export class PHPFile {
     const binder = new Binder(this.diagnostic);
 
     const bound = binder.bindAst(ast);
+    bound.prettyPrint();
     const transformer = new PhpConcepts()
 
     const transformed = transformer.transformFile(bound);
@@ -52,7 +53,6 @@ export class PHPFile {
 
     const toJs = new Javascript();
     const result = toJs.toSourceFileStatement(transformed);
-
 
     return result;
   }

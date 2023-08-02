@@ -2,7 +2,7 @@ import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BoundBinaryOperator, BoundUnaryOperator} from "./bound-operator.js";
 import {BoundKind} from "./bound.node.js";
 import {BoundClassStatement, BoundFunctionStatement} from "./bound-statement.js";
-import {BoundModifiers} from "./bound-modifiers.js";
+import {Modifiers} from "../source/syntax/syntax.facts.js";
 
 export type BoundExpression = (
   | BoundAssignmentExpression
@@ -15,11 +15,18 @@ export type BoundExpression = (
   | BoundLiteralExpression
   | BoundUnaryExpression
   | BoundVariableExpression
+  | BoundParenExpression
 
   // Some statements are valid expressions
   | BoundClassStatement
   | BoundFunctionStatement
   )
+
+export type BoundParenExpression = {
+  kind: BoundKind.BoundParenExpression,
+  type: TypeSymbol,
+  expression: BoundExpression,
+}
 export type BoundAssignmentExpression = {
   kind: BoundKind.BoundAssignmentExpression,
   type: TypeSymbol,
@@ -32,6 +39,7 @@ export type BoundBinaryExpression = {
   left: BoundExpression,
   right: BoundExpression,
   operator: BoundBinaryOperator,
+  modifiers: Modifiers,
 }
 export type BoundCommaExpression = {
   kind: BoundKind.BoundCommaExpression,
@@ -56,7 +64,7 @@ export type BoundNameExpression = {
   kind: BoundKind.BoundNameExpression,
   type: TypeSymbol,
   variable: VariableSymbol,
-  modifiers: BoundModifiers,
+  modifiers: Modifiers,
 }
 export type BoundUnaryExpression = {
   kind: BoundKind.BoundUnaryExpression,

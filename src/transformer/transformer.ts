@@ -32,7 +32,6 @@ import {
   BoundVariableExpression
 } from "../binder/bound-expression.js";
 import {BoundFile} from "../binder/bound-special.js";
-import {BoundScope} from "../binder/bound-scope.js";
 import {TypeSymbol} from "../symbols/symbols.js";
 import {BoundBinaryOperator} from "../binder/bound-operator.js";
 
@@ -288,6 +287,7 @@ export abstract class Transformer {
         left,
         operator,
         right,
+        modifiers: node.modifiers,
       })
     }
     return node;

@@ -18,10 +18,8 @@ export enum BoundBinaryOperatorKind {
   BitwiseAnd,
   BitwiseOr,
   BitwiseXor,
-  PostInfix,
   MethodCall,
   FunctionCall,
-  New,
   MemberAccess,
 }
 
@@ -107,6 +105,7 @@ export enum BoundUnaryOperatorKind {
 }
 
 export class BoundUnaryOperator {
+  public readonly name: string
   private constructor(
     public readonly syntaxKind: SyntaxKind,
     public readonly kind: BoundUnaryOperatorKind,
@@ -114,6 +113,7 @@ export class BoundUnaryOperator {
     public readonly resultType?: TypeSymbol,
     public readonly post: boolean = false,
   ) {
+    this.name = BoundUnaryOperatorKind[kind];
     this.resultType ??= opType;
   }
 

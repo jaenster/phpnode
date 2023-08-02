@@ -12,8 +12,15 @@ import {
 } from "../binder/bound-statement.js";
 import {
   BoundAssignmentExpression,
-  BoundBinaryExpression, BoundCommaExpression, BoundEmptyExpression,
-  BoundExpression, BoundLiteralExpression, BoundNameExpression, BoundUnaryExpression, BoundVariableExpression
+  BoundBinaryExpression,
+  BoundCommaExpression,
+  BoundEmptyExpression,
+  BoundExpression,
+  BoundLiteralExpression,
+  BoundNameExpression,
+  BoundParenExpression,
+  BoundUnaryExpression,
+  BoundVariableExpression
 } from "../binder/bound-expression.js";
 import {BoundKind} from "../binder/bound.node.js";
 
@@ -133,9 +140,13 @@ export abstract class ToSource {
         return this.toSourceClassStatement(node);
       case BoundKind.BoundEmptyExpression:
         return this.toSourceEmptyExpression(node);
+      case BoundKind.BoundParenExpression:
+        return this.toSourceParenExpression(node);
     }
     throw new Error('Did not implement ' + BoundKind[node.kind]);
   }
+
+  abstract toSourceParenExpression(node: BoundParenExpression): string
 }
 
 

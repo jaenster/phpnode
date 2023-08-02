@@ -15,6 +15,9 @@ export enum BoundKind {
   BoundUnaryExpression,
   BoundVariableExpression,
 
+  // Doesn't exist's in the syntax, this is not a (foo). Simply abusing this to wrap __php_use calls in parens
+  BoundParenExpression,
+
   // Special
   BoundLabel,
   BoundParameter,
@@ -47,17 +50,17 @@ export type BoundNodeTypes = BoundExpression | BoundStatement | BoundSpecial;
 
 export function createBoundExpression<T extends BoundExpression>(value: BoundNodeTypes): T & BoundNode {
   const instance = Object.create(BoundNode.prototype);
-  return Object.assign(instance, value, {fields: Object.keys(value)});
+  return Object.assign(instance, value, {fields: Object.keys(value)}, {debugKindName: BoundKind[value.kind]});
 }
 
 export function createBoundStatement<T extends BoundStatement>(value: BoundNodeTypes): T & BoundNode {
   const instance = Object.create(BoundNode.prototype);
-  return Object.assign(instance, value, {fields: Object.keys(value)});
+  return Object.assign(instance, value, {fields: Object.keys(value)}, {debugKindName: BoundKind[value.kind]});
 }
 
 export function createBoundSpecial<T extends BoundSpecial>(value: BoundNodeTypes): T & BoundNode {
   const instance = Object.create(BoundNode.prototype);
-  return Object.assign(instance, value, {fields: Object.keys(value)});
+  return Object.assign(instance, value, {fields: Object.keys(value)}, {debugKindName: BoundKind[value.kind]});
 }
 
 export class BoundNode {
