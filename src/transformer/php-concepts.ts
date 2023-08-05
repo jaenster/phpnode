@@ -55,22 +55,41 @@ export class PhpConcepts extends Transformer {
       }),
       right: node,
       operator: BoundBinaryOperator.call,
-      modifiers: 0,
+      modifiers: Modifiers.TranspilerSync,
     })
   }
 
   transformBinaryExpression(node: BoundBinaryExpression): BoundExpression {
 
-    // Transform "foo" . 5 to "foo" + String("foo")
-    if (node.operator.kind === BoundBinaryOperatorKind.Concatenation) {
-      return createBoundExpression({
-        kind: BoundKind.BoundBinaryExpression,
-        left: this.wrapWithStringCast(this.transformExpression(node.left)),
-        right: this.wrapWithStringCast(this.transformExpression(node.right)),
-        operator: BoundBinaryOperator.addition,
-        type: TypeSymbol.string,
-        modifiers: 0,
-      })
+    switch (node.operator.kind) {
+
+      // Transform "foo" . 5 to "foo" + String("foo")
+      case BoundBinaryOperatorKind.Concatenation:
+        return createBoundExpression({
+          kind: BoundKind.BoundBinaryExpression,
+          left: this.wrapWithStringCast(this.transformExpression(node.left)),
+          right: this.wrapWithStringCast(this.transformExpression(node.right)),
+          operator: BoundBinaryOperator.addition,
+          type: TypeSymbol.string,
+          modifiers: 0,
+        })
+
+      case BoundBinaryOperatorKind.MemberAccess: {
+        break;
+      }
+
+
+      // Convert Foo::bar() to Foo.bar() for static access
+      case BoundBinaryOperatorKind.StaticMemberAccess:
+        // By wrapping this is another transform expression, this gets converted correctly again
+        return this.transformExpression(createBoundExpression({
+          kind: BoundKind.BoundBinaryExpression,
+          operator: BoundBinaryOperator.getByOperatorKind(BoundBinaryOperatorKind.MemberAccess),
+          left: node.left,
+          right: node.right,
+          type: TypeSymbol.string,
+          modifiers: 0,
+        }))
     }
 
     return super.transformBinaryExpression(node);
@@ -79,7 +98,7 @@ export class PhpConcepts extends Transformer {
   private currentNamespace = '';
 
   transformNameExpression(node: BoundNameExpression): BoundExpression {
-    // Ignore internal name epxressions to avoid recursion
+    // Ignore internal name expressions to avoid recursion
     if ((node.modifiers & Modifiers.TranspilerInternal) === Modifiers.TranspilerInternal) {
       return super.transformNameExpression(node);
     }
@@ -192,16 +211,13 @@ export class PhpConcepts extends Transformer {
           type: TypeSymbol.func,
           parameters: [],
           scope: node.scope.createChild(),
-          body: createBoundStatement({
-            kind: BoundKind.BoundBlockStatement,
-            statements: [
+          statements: [
               createBoundStatement({
                 kind: BoundKind.BoundReturnStatement,
                 // Expression is class statement which is a valid expression
                 expression: node,
               })
             ]
-          })
         })
       ],
     });

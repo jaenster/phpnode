@@ -60,8 +60,10 @@ export type FunctionStatementSyntax = {
   keyword: SyntaxToken,
   identifier: SyntaxToken,
   parameters: ParametersSyntax[],
-  body: BlockStatementSyntax,
+  statements: StatementSyntax[],
   type: TypeClause,
+  open: SyntaxToken,
+  close: SyntaxToken,
 }
 export type ClassStatementSyntax = {
   kind: SyntaxNodeKind.ClassStatementSyntax,

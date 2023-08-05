@@ -22,6 +22,7 @@ export enum BoundBinaryOperatorKind {
   MethodCall,
   FunctionCall,
   MemberAccess,
+  StaticMemberAccess,
 }
 
 function isType(type1: TypeSymbol, type2: TypeSymbol) {
@@ -80,10 +81,18 @@ export class BoundBinaryOperator {
     new BoundBinaryOperator(SyntaxKind.DotToken, BoundBinaryOperatorKind.Concatenation, TypeSymbol.any, TypeSymbol.any, TypeSymbol.string),
 
     new BoundBinaryOperator(SyntaxKind.ArrowToken, BoundBinaryOperatorKind.MemberAccess, TypeSymbol.any),
+    new BoundBinaryOperator(SyntaxKind.ColonColonToken, BoundBinaryOperatorKind.StaticMemberAccess, TypeSymbol.any),
     this.memberCall,
     this.call,
-
   ]
+
+  static getByOperatorKind(kind: BoundBinaryOperatorKind, type: TypeSymbol = TypeSymbol.any) {
+    for (const op of this.operator) {
+      if (op.kind === kind && isType(op.leftType, type)) {
+        return op;
+      }
+    }
+  }
 
   static bind(syntaxKind: SyntaxKind, left: BoundExpression, right: BoundExpression) {
     for (const op of this.operator) {
@@ -138,7 +147,7 @@ export class BoundUnaryOperator {
     new BoundUnaryOperator(SyntaxKind.MinusMinusToken, BoundUnaryOperatorKind.PostFixDecrease, TypeSymbol.int, TypeSymbol.int, true),
 
     // a?.test(), the question mark
-    new BoundUnaryOperator(SyntaxKind.ExclamationToken, BoundUnaryOperatorKind.Optional, TypeSymbol.Object, TypeSymbol.self, true),
+    new BoundUnaryOperator(SyntaxKind.QuestionToken, BoundUnaryOperatorKind.Optional, TypeSymbol.Object, TypeSymbol.self, true),
 
     new BoundUnaryOperator(SyntaxKind.NewKeyword, BoundUnaryOperatorKind.New, TypeSymbol.any),
   ]

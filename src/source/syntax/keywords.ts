@@ -83,4 +83,8 @@ type Values<T> = T[keyof T];
 
 export const KeywordsByName = {} as Record<Values<typeof KeywordsBySyntax>, SyntaxKind>
 
+// Avoid that something like toString becomes a keyword because its defined on the Object.prototype
+Object.setPrototypeOf(KeywordsByName, null)
+Object.setPrototypeOf(KeywordsBySyntax, null)
+
 Object.entries(KeywordsBySyntax).forEach((([v, k]) => KeywordsByName[k] = Number(v)))

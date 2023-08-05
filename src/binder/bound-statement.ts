@@ -1,11 +1,11 @@
-import {BoundExpression, BoundNameExpression} from "./bound-expression.js";
+import {BoundExpression} from "./bound-expression.js";
 import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
-import {BoundKind} from "./bound.node.js";
+import {BoundKind, BoundNodeTypes} from "./bound.node.js";
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BoundScope} from "./bound-scope.js";
 import {Modifiers} from "../source/syntax/syntax.facts.js";
 
-export type BoundStatement =
+export type BoundStatement = (
   | BoundBlockStatement
   | BoundBodyStatement
   | BoundBreakStatement
@@ -26,6 +26,7 @@ export type BoundStatement =
   | BoundWhileStatement
   | BoundEchoStatement
   | BoundFile
+  ) & { parent?: BoundNodeTypes }
 
 export type BoundBlockStatement = {
   kind: BoundKind.BoundBlockStatement,
@@ -107,7 +108,7 @@ export type BoundMethodStatement = Omit<BoundFunctionStatement, 'kind'> & {
 }
 export type BoundFunctionStatement = {
   kind: BoundKind.BoundFunctionStatement,
-  body: BoundStatement,
+  statements: BoundStatement[],
   parameters: BoundParameter[],
   type: TypeSymbol,
   name?: string,

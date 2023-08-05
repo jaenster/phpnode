@@ -539,7 +539,7 @@ export class Parser {
     const identifier = this.match(SyntaxKind.IdentifierToken);
     const parameters = this.parseParameters()
     const type = this.parseOptionalTypeClause()
-    const body = this.parseBlockStatement();
+    const {statements, open, close} = this.parseBlockStatement();
 
     return createStatementNode({
       kind: SyntaxNodeKind.FunctionStatementSyntax,
@@ -547,8 +547,10 @@ export class Parser {
       keyword,
       identifier,
       parameters,
-      body,
+      statements,
       type,
+      open,
+      close,
     })
   }
 
@@ -595,6 +597,9 @@ export class Parser {
           break;
         case SyntaxNodeKind.PropertyStatementSyntax:
           properties.push(member);
+          break;
+        default:
+          this.diagnostics.reportExpectedPropertyOrMember(this.current().span)
           break;
       }
       if (this.current().kind === SyntaxKind.BraceRToken) {

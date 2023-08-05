@@ -45,7 +45,12 @@ import {
   UnaryExpressionSyntax
 } from "../source/syntax/expression.syntax.js";
 import {BoundExpression} from "./bound-expression.js";
-import {BoundBinaryOperator, BoundUnaryOperator, BoundUnaryOperatorKind} from "./bound-operator.js";
+import {
+  BoundBinaryOperator,
+  BoundBinaryOperatorKind,
+  BoundUnaryOperator,
+  BoundUnaryOperatorKind
+} from "./bound-operator.js";
 import {TextSpan} from "../common/text-span.js";
 import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 import {SyntaxToken} from "../source/lexer.js";
@@ -55,6 +60,7 @@ export class Binder {
   private currentLoop: Array<Omit<BoundBodyStatement, 'statement'>> = [];
 
   public scope: BoundScope;
+  public last: BoundNode;
 
   constructor(public readonly diagnostics: Diagnostics, scope?: BoundScope) {
     this.scope = scope ?? this.createParentScope()
@@ -281,7 +287,7 @@ export class Binder {
     const operator = BoundBinaryOperator.bind(syntax.operator.kind, left, right);
     if (!operator) {
 
-      // Function calls
+      // Function calls are different, as its left(right) and not left + right
       let span: TextSpan = syntax.operator.span;
       if (syntax.operator.kind === SyntaxKind.ParenLToken) {
         if (right.kind === BoundKind.BoundEmptyExpression) {
@@ -294,6 +300,12 @@ export class Binder {
 
       this.diagnostics.reportUndefinedBinaryOperator(span, syntax.operator.text, left.type, right.type);
       return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error});
+    }
+
+
+    // Cases to convert
+    if (operator.kind === BoundBinaryOperatorKind.MemberAccess) {
+      console.log('');
     }
 
     return createBoundExpression({
@@ -400,14 +412,15 @@ export class Binder {
   }
 
 
-  bindAst(file: FileSyntax): BoundFile&BoundNode {
-
+  bindFile(file: FileSyntax): BoundFile&BoundNode {
     const statements: BoundStatement[] = []
     for(const statement of file.body) {
       statements.push(this.bindStatement(statement));
     }
 
-    return createBoundStatement({kind: BoundKind.BoundFile, statements, filename: file.filename, scope: this.scope})
+    const node = createBoundStatement({kind: BoundKind.BoundFile, statements, filename: file.filename, scope: this.scope});
+    console.log(node.parent);
+    return node as BoundFile&BoundNode;
   }
 
 
@@ -424,17 +437,17 @@ export class Binder {
     return mods;
   }
 
-  private bindMethodStatement(syntax: FunctionStatementSyntax): BoundMethodStatement {
+  private bindFunctionStatement(syntax: FunctionStatementSyntax): BoundMethodStatement {
     const scope = this.wrapScope()
 
-    const body = this.bindBlockStatement(syntax.body);
+    const statements = syntax.statements.map(el => this.bindStatement(el));
     const modifiers = this.bindModifiers(Modifiers.AllowedOnMethod, syntax.modifiers, 'method');
     const parameters = syntax.parameters.map(el => this.bindParameter(el));
 
     this.unwrapScope()
     return createBoundStatement({
       kind: BoundKind.BoundMethodStatement,
-      body,
+      statements,
       modifiers,
       parameters: parameters,
       name: syntax.identifier.text,
@@ -469,7 +482,7 @@ export class Binder {
 
     const methods: BoundMethodStatement[] = [];
     for(const member of syntax.methods) {
-      methods.push(this.bindMethodStatement(member));
+      methods.push(this.bindFunctionStatement(member));
     }
 
     const properties: BoundPropertyStatement[] = [];

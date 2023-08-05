@@ -16,9 +16,9 @@ const enum PrecedenceKind {
   Unary,
   Prefix,
   Postfix,
+  MemberAccess,
   NewCall,
   FunctionCall,
-  MemberAccess,
 }
 
 export function getUnaryOperatorPrecedence(kind: SyntaxKind, next: SyntaxKind) {
@@ -125,6 +125,7 @@ export enum Modifiers {
   // Dont convert
   TranspilerInternal = 1 << 8,
   TranspilerParen = 1 << 9,
+  TranspilerSync = 1 << 9,
 
   AllowedInClass = Abstract | Final,
   AllowedOnMethod = Abstract | Final | Public | Protected | Private | Static,

@@ -31,6 +31,9 @@ export class SyntaxToken {
     public readonly text: string,
     public readonly value: any,
   ) {
+    if (typeof kind === 'function') {
+      console.log('');
+    }
     this.name = SyntaxKind[this.kind];
   }
 

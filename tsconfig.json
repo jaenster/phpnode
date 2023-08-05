@@ -6,12 +6,18 @@
     "sourceMap": true,
     "lib": [
       "es2021.weakref"
-    ]
+    ],
+    "outDir": "./bin",
+    "baseUrl": "."
   },
+  "include": [
+    "src/**/*.ts"
+  ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "**/*.spec.ts"
   ],
   "ts-node": {
     "esm": true
-  },
+  }
 }

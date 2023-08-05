@@ -39,7 +39,7 @@ export class PHPFile {
 
     const binder = new Binder(this.diagnostic);
 
-    const bound = binder.bindAst(ast);
+    const bound = binder.bindFile(ast);
     bound.prettyPrint();
     const transformer = new PhpConcepts()
 

@@ -1,6 +1,6 @@
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BoundBinaryOperator, BoundUnaryOperator} from "./bound-operator.js";
-import {BoundKind} from "./bound.node.js";
+import {BoundKind, BoundNodeTypes} from "./bound.node.js";
 import {BoundClassStatement, BoundFunctionStatement} from "./bound-statement.js";
 import {Modifiers} from "../source/syntax/syntax.facts.js";
 
@@ -20,7 +20,7 @@ export type BoundExpression = (
   // Some statements are valid expressions
   | BoundClassStatement
   | BoundFunctionStatement
-  )
+  ) & { parent?: BoundNodeTypes }
 
 export type BoundParenExpression = {
   kind: BoundKind.BoundParenExpression,

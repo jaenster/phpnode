@@ -70,4 +70,8 @@ export class Diagnostics {
   reportModifierNotAllowed(span: TextSpan, on: string) {
     this.report(span, `Modifier not allowed on ${on}`)
   }
+
+  reportExpectedPropertyOrMember(span: TextSpan) {
+    this.report(span, `Expected property or modifier`);
+  }
 }

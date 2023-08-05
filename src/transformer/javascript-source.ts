@@ -29,8 +29,6 @@ import {ToSource} from "./to-source.js";
 import {BoundBinaryOperator, BoundBinaryOperatorKind, BoundUnaryOperatorKind} from "../binder/bound-operator.js";
 import {KeywordsByName, KeywordsBySyntax} from "../source/syntax/keywords.js";
 import {BoundScope} from "../binder/bound-scope.js";
-import {Modifiers} from "../source/syntax/syntax.facts.js";
-import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);
@@ -48,8 +46,18 @@ const unaryOperators = {
 
 export class Javascript extends ToSource {
 
+  ident = '';
+
+  addIndent() {
+    this.ident += '  ';
+  }
+
+  removeIdent() {
+    this.ident = this.ident.substring(0, Math.max(0, this.ident.length - 2));
+  }
+
   toSourceParenExpression(node: BoundParenExpression): string {
-    return "("+this.toSourceExpression(node.expression)+')';
+    return "(" + this.toSourceExpression(node.expression) + ')';
   }
 
   toSourceDeclareVariables(scope: BoundScope) {
@@ -61,7 +69,7 @@ export class Javascript extends ToSource {
       names.push(name);
     }
 
-    return names.length ? 'let ' + names.join(', ') : '';
+    return names.length ? this.ident + 'let ' + names.join(', ') : '';
   }
 
   toSourceFileStatement(node: BoundFile): string {
@@ -70,12 +78,14 @@ export class Javascript extends ToSource {
 export default __php__file("${escape(node.filename)}", async () => {`
     ];
 
+    this.addIndent()
     const declarations = this.toSourceDeclareVariables(node.scope);
     if (declarations) source.push(declarations);
 
     for (const statement of node.statements) {
       source.push(this.toSourceStatement(statement));
     }
+    this.removeIdent()
     source.push(`});`)
     return source.join('\n');
   }
@@ -98,13 +108,20 @@ export default __php__file("${escape(node.filename)}", async () => {`
 
     const operatorString = binaryOperators[node.operator.kind];
     if (operatorString === undefined) {
-      throw new Error('operator '+BoundBinaryOperatorKind[node.operator.kind]+' does not exists in javascript');
+      throw new Error('operator ' + BoundBinaryOperatorKind[node.operator.kind] + ' does not exists in javascript');
     }
     return left + operatorString + right;
   }
 
   toSourceBlockStatement(node: BoundBlockStatement): string {
-    return "{\n" + node.statements.map(el => this.toSourceStatement(el)).join('\n') + '}\n';
+    const lines = [this.ident + '{'];
+    this.addIndent();
+    for (const statement of node.statements) {
+      lines.push(this.ident + this.toSourceStatement(statement));
+    }
+    this.removeIdent();
+    lines.push(this.ident + '}');
+    return lines.join('\n');
   }
 
   toSourceBodyStatement(node: BoundBodyStatement): string {
@@ -124,7 +141,7 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceExpressionStatement(node: BoundExpressionStatement): string {
-    const expression = this.toSourceExpression(node.expression);
+    const expression = this.ident+this.toSourceExpression(node.expression);
     return expression + ';';
   }
 
@@ -187,21 +204,30 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceReturnStatement(node: BoundReturnStatement): string {
-    return "return " + this.toSourceExpression(node.expression)
+    return "return " + this.toSourceExpression(node.expression).trim()
   }
 
   toSourceFunctionStatement(node: BoundFunctionStatement) {
     const lines = [];
-    lines.push(`async function ${node.name ?? ''}(${node.parameters.map(el => el.variable.name).join(', ')})`);
-    lines.push(this.toSourceStatement(node.body));
+    lines.push(`${this.ident}async function ${node.name ?? ''}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
+    this.addIndent();
+    for (const statement of node.statements) {
+      lines.push(this.ident + this.toSourceStatement(statement));
+    }
+    this.removeIdent();
+    lines.push(`${this.ident}}`)
     return lines.join('\n');
   }
 
   toSourceMethodStatement(node: BoundMethodStatement) {
     const lines = [];
-    lines.push(`${node.name}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
-    lines.push(this.toSourceStatement(node.body));
-    lines.push(`}`)
+    lines.push(`${this.ident}${node.name}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
+    this.addIndent();
+    for (const statement of node.statements) {
+      lines.push(this.ident + this.toSourceStatement(statement));
+    }
+    this.removeIdent();
+    lines.push(`${this.ident}}`)
     return lines.join('\n');
   }
 
@@ -212,7 +238,8 @@ export default __php__file("${escape(node.filename)}", async () => {`
   toSourceClassStatement(statement: BoundClassStatement) {
     const lines = [];
 
-    lines.push(`class ` + statement.name + ' {');
+    lines.push(this.ident + `class ` + statement.name + ' {');
+    this.addIndent();
     for (const property of statement.properties) {
       lines.push(this.toSourceProperty(property));
     }
@@ -220,8 +247,9 @@ export default __php__file("${escape(node.filename)}", async () => {`
     for (const member of statement.methods) {
       lines.push(this.toSourceMethodStatement(member));
     }
+    this.removeIdent();
 
-    lines.push('}');
+    lines.push(this.ident + '}');
     return lines.join('\n');
   }
 
