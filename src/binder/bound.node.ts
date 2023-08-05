@@ -203,6 +203,27 @@ export class BoundNode {
     return this.#parent?.deref();
   }
 
+  static *traverse(parent: BoundNode): Generator<BoundNodeTypes> {
+    if (!(parent instanceof BoundNode)) {
+      return
+    }
+    yield (parent as BoundNodeTypes&BoundNode);
+
+    for (const field of parent.fields) {
+      if (field === 'kind') continue;
+      const node = parent[field] as unknown as BoundNodeTypes;
+      if (node instanceof BoundNode) {
+        yield *this.traverse(node);
+      } else if (Array.isArray(node)) {
+        for(const child of (node as Array<BoundNode>)) {
+          if (child instanceof BoundNode) {
+            yield *this.traverse(child);
+          }
+        }
+      }
+    }
+  }
+
   static clone(parent: BoundNode) {
 
     const clone = new BoundNode();
@@ -287,6 +308,7 @@ export class BoundNode {
 
         // Those start a new scope; So its not part of this expressions
         case BoundKind.BoundClassStatement:
+          yield expression;
           break;
         case BoundKind.BoundFunctionStatement:
           break;

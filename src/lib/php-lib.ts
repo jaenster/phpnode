@@ -57,26 +57,3 @@ export async function __php__file(path: string, callback: () => Promise<void>) {
   __php__file[path] = callback;
   return callback;
 }
-
-
-
-//
-// __php__file('whatever.php', async () => {
-//   await __php__namespace('Example', async (__NAMESPACE__) => class Foo {
-//     title = undefined
-//
-//     async bar() {
-//       await __php__echo("<p>" + this.title + ' ' + __NAMESPACE__ + '</p>')
-//     }
-//   }, 'Foo')
-//
-//   await __php__namespace('Example', async (__NAMESPACE__) => {
-//     let $table = new (await __php__use('Foo', __NAMESPACE__))
-//     $table.title = "bar";
-//     $table.bar()
-//   })
-//
-//
-//   await __php__run()
-//
-// })

@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
+    "@jaenster/php-native": "file:./src/lib",
     "chalk": "^5.2.0",
     "map-ext": "^0.1.4"
   },

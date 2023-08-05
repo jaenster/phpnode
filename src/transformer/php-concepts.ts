@@ -8,7 +8,7 @@ import {
 import {BoundKind, BoundNode, createBoundExpression, createBoundStatement} from "../binder/bound.node.js";
 import {BoundBinaryOperator, BoundBinaryOperatorKind} from "../binder/bound-operator.js";
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
-import {BuiltinFunctions} from "../symbols/buildin-functions.js";
+import {BuiltinFunctions} from "../php/buildin-functions.js";
 import {BoundFile} from "../binder/bound-special.js";
 import {BoundBinaryExpression, BoundExpression, BoundNameExpression} from "../binder/bound-expression.js";
 import {Modifiers} from "../source/syntax/syntax.facts.js";

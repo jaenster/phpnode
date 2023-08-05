@@ -23,11 +23,14 @@ globalThis.__PHP__store = {
 async function newConnection(request: Request, response: Response) {
   console.log('new connection');
   console.log(request.url)
+  if (!request.url.endsWith('.php') && request.url !== '/') {
+    response.end();
+    return;
+  }
 
   const {base, files} = globalThis.__PHP__store as PHPStore;
 
   // ToDo; support rewrite rules of apache/nginx
-
 
   const normalized = normalize(request.url)
   let file = normalize(base + normalized);

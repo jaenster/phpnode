@@ -7,37 +7,43 @@ export enum SyntaxKind {
   // Literals
   AmpersandAmpersandToken,
   AmpersandToken,
-  ExclamationEqualToken,
-  ExclamationToken,
-  QuestionToken,
+  ArrowToken, // ->
+  AtToken,
   BraceLToken,
   BraceRToken,
   ColonColonToken,
   ColonToken,
   CommaToken,
+  DotToken,
+  EqualEqualEqualToken,
   EqualEqualToken,
   EqualToken,
+  ExclamationEqualEqualToken,
+  ExclamationEqualToken,
+  ExclamationToken,
   GreaterEqualToken,
   GreaterToken,
   HatToken,
+  LessEqualGreaterToKen,
   LessEqualToken,
   LessToken,
   MinusMinusToken,
   MinusToken,
   ParenLToken,
   ParenRToken,
+  PercentageToken,
   PipePipeToken,
   PipeToken,
   PlusPlusToken,
   PlusToken,
+  QuestionQuestionToken,
+  QuestionToken,
+  SemiColonToken,
   SlashToken,
+  StarStarToken,
   StarToken,
   TildeToken,
-  DotToken,
-  SemiColonToken,
   VariableToken,
-  AtToken,
-  ArrowToken, // ->
 
 
   // Virtual
@@ -123,4 +129,7 @@ export enum SyntaxKind {
   TrueKeyword,
   FalseKeyword,
   FromKeyword,
+
+
+  CommentToken,
 }

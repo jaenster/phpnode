@@ -25,15 +25,13 @@ const cacheToken = new WeakMap<SyntaxToken, TextSpan>()
 
 export class SyntaxToken {
   private name: string;
+
   constructor(
     public readonly kind: SyntaxKind,
     public readonly position: number,
     public readonly text: string,
     public readonly value: any,
   ) {
-    if (typeof kind === 'function') {
-      console.log('');
-    }
     this.name = SyntaxKind[this.kind];
   }
 
@@ -135,17 +133,33 @@ export class Lexer {
         this.currentKind = SyntaxKind.EOF;
         this.position++;
         break;
+      case '%':
+        this.position++
+        this.currentKind = SyntaxKind.PercentageToken;
+        break;
       case '*':
         this.position++
-        this.currentKind = SyntaxKind.StarToken;
+        if (this.current() === '*') {
+          this.position++
+          this.currentKind = SyntaxKind.StarStarToken;
+        } else {
+          this.currentKind = SyntaxKind.StarToken;
+        }
         break;
       case '.':
         this.position++
         this.currentKind = SyntaxKind.DotToken;
         break;
       case '/':
-        this.position++
-        this.currentKind = SyntaxKind.SlashToken;
+        if (this.current() === '/') {
+          this.currentKind = SyntaxKind.CommentToken;
+          do {
+            this.position++;
+          } while (this.current() !== '\r' && this.current() !== '\n');
+        } else {
+          this.position++
+          this.currentKind = SyntaxKind.SlashToken;
+        }
         break;
       case '(':
         this.position++
@@ -218,7 +232,12 @@ export class Lexer {
         this.position++;
         if (this.current() === '=') {
           this.position++;
-          this.currentKind = SyntaxKind.EqualEqualToken;
+          if (this.current() === '=') {
+            this.currentKind = SyntaxKind.EqualEqualEqualToken;
+            this.position++;
+          } else {
+            this.currentKind = SyntaxKind.EqualEqualToken;
+          }
         } else {
           this.currentKind = SyntaxKind.EqualToken;
         }
@@ -227,20 +246,34 @@ export class Lexer {
         this.position++;
         if (this.current() === '=') {
           this.position++;
-          this.currentKind = SyntaxKind.ExclamationEqualToken;
+          if (this.current() === '=') {
+            this.position++;
+            this.currentKind = SyntaxKind.ExclamationEqualEqualToken;
+          } else {
+            this.currentKind = SyntaxKind.ExclamationEqualToken;
+          }
         } else {
           this.currentKind = SyntaxKind.ExclamationToken;
         }
         break;
       case '?':
         this.position++;
-        this.currentKind = SyntaxKind.QuestionToken;
+        if (this.current() === '?') {
+          this.position++;
+          this.currentKind = SyntaxKind.QuestionQuestionToken;
+        } else {
+          this.currentKind = SyntaxKind.QuestionToken;
+        }
         break;
       case '<':
         this.position++;
         if (this.current() === '=') {
           this.position++;
-          this.currentKind = SyntaxKind.LessEqualToken;
+          if (this.current() === '>') {
+            this.currentKind = SyntaxKind.LessEqualGreaterToKen
+          } else {
+            this.currentKind = SyntaxKind.LessEqualToken;
+          }
         } else {
           this.currentKind = SyntaxKind.LessToken;
         }
@@ -375,7 +408,7 @@ export class Lexer {
     let current: SyntaxToken;
     do {
       current = this.lex();
-      if (current.kind === SyntaxKind.WhitespaceToken) {
+      if (current.kind === SyntaxKind.WhitespaceToken || current.kind === SyntaxKind.CommentToken) {
         continue;
       }
       yield current;
@@ -392,7 +425,7 @@ export class Lexer {
   private readVariable() {
     do {
       this.next();
-    } while(this.current() == '$')
+    } while (this.current() == '$')
 
     this.readValidIdentifier();
   }

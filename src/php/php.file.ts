@@ -39,11 +39,11 @@ export class PHPFile {
     const binder = new Binder(this.diagnostic);
 
     const bound = binder.bindFile(ast);
-    bound.prettyPrint();
+    // bound.prettyPrint();
     const transformer = new PhpConcepts()
 
     const transformed = transformer.transformFile(bound);
-    transformed.prettyPrint();
+    // transformed.prettyPrint();
 
     if (this.diagnostic.items.length) {
       this.source.printDiagnostics(this.diagnostic);

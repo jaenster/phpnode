@@ -76,3 +76,16 @@ export class MethodSymbol extends VariableSymbol {
     return this.name;
   }
 }
+
+export class BuildInSymbol extends MethodSymbol {
+  constructor(
+    name: string,
+    type: TypeSymbol,
+    parameters: BoundParameter[],
+    returnType: TypeSymbol,
+    public readonly imported = true,
+    public readonly importedFrom = '@jaenster/php-native',
+  ) {
+    super(name, type, parameters, returnType);
+  }
+}

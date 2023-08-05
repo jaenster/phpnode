@@ -35,6 +35,9 @@ import {BoundBinaryOperator, BoundBinaryOperatorKind, BoundUnaryOperatorKind} fr
 import {KeywordsByName, KeywordsBySyntax} from "../source/syntax/keywords.js";
 import {BoundScope} from "../binder/bound-scope.js";
 import {isModifierSet, Modifiers} from "../source/syntax/syntax.facts.js";
+import {BoundKind, BoundNode} from "../binder/bound.node.js";
+import {BuildInSymbol} from "../symbols/symbols.js";
+import {MapExt} from "map-ext";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);
@@ -66,6 +69,27 @@ export class Javascript extends ToSource {
     return "(" + this.toSourceExpression(node.expression) + ')';
   }
 
+  toSourceDeclareImports(node: BoundNode) {
+    let imports = new MapExt<string, string[]>(() => []);
+    imports.get('@jaenster/php-native').push('__php__file');
+    for(const child of BoundNode.traverse(node)) {
+      switch(child.kind) {
+        case BoundKind.BoundNameExpression: {
+
+          if (child.variable instanceof BuildInSymbol && child.variable.imported) {
+            imports.get(child.variable.importedFrom).push(child.variable.name);
+          }
+        }
+      }
+    }
+
+    const lines = [];
+    for(const [name, fields] of imports) {
+      lines.push(this.ident+'import {'+fields.join(', ')+'} from "'+escape(name)+'"')
+    }
+    return lines.join('\n');
+  }
+
   toSourceDeclareVariables(scope: BoundScope) {
     // In javascript, variables need to exist before they are used
     // They are block scoped too, to avoid issues with it, abuse the way javascript works
@@ -80,6 +104,7 @@ export class Javascript extends ToSource {
 
   toSourceFileStatement(node: BoundFile): string {
     const source = [
+      this.toSourceDeclareImports(node as unknown as BoundNode),
       `//Transpiled
 export default __php__file("${escape(node.filename)}", async () => {`
     ];
