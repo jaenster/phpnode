@@ -17,7 +17,7 @@ import {
   SyntaxNodeKind
 } from "./syntax/syntax.node.js";
 import {ElseClause, FileSyntax, ParametersSyntax, TypeClause} from "./syntax/special.syntax.js";
-import {BinaryExpressionSyntax, ExpressionSyntax} from "./syntax/expression.syntax.js";
+import {ExpressionSyntax} from "./syntax/expression.syntax.js";
 import {
   canBePostFixOperator,
   getBinaryOperatorPrecedence,
@@ -271,41 +271,46 @@ export class Parser {
     return this.parseBinaryExpression();
   }
 
-  private parseBinaryExpression(parentPrecedence: number = 0): ExpressionSyntax & SyntaxNode {
-    let left: ExpressionSyntax & SyntaxNode;
-
+  private parseUnaryExpression(parentPrecedence: number = 0): ExpressionSyntax & SyntaxNode {
     const unaryOperatorPrecedence = getUnaryOperatorPrecedence(this.current().kind, this.peek(1).kind);
-    if (unaryOperatorPrecedence != 0 && unaryOperatorPrecedence >= parentPrecedence) {
-      // Check if it is a unary post fix operator (a++, a--, a?)
-      let next = this.peek(1);
-      if (canBePostFixOperator(next.kind)) {
-        const literal = this.parsePrimaryExpression();
-        this.nextToken();
-
-        // while you only can do a++ or a--, call()?.something(), here ? is a valid postfix
-        if (supportsOnlyNameExpression(next.kind) && literal.kind !== SyntaxNodeKind.NameExpressionSyntax) {
-          this.diagnostics.reportCanOnlyUsePostfixOnNameExpression(literal.span)
-          left = createExpressionNode({
-            kind: SyntaxNodeKind.LiteralExpressionSyntax,
-            type: TypeSymbol.error,
-            value: null
-          })
-        } else {
-          left = createExpressionNode({
-            kind: SyntaxNodeKind.UnaryExpressionSyntax,
-            operand: literal,
-            operator: next,
-            post: true
-          });
-        }
-      } else {
-        const operator = this.nextToken();
-        const operand = this.parseBinaryExpression(unaryOperatorPrecedence);
-        left = createExpressionNode({kind: SyntaxNodeKind.UnaryExpressionSyntax, operator, operand, post: false});
-      }
-    } else {
-      left = this.parsePrimaryExpression();
+    if (!(unaryOperatorPrecedence != 0 && unaryOperatorPrecedence >= parentPrecedence)) {
+      return this.parsePrimaryExpression();
     }
+
+    // Check if it is a unary infix fix operator (new a, -a, ++a)
+    let next = this.peek(1);
+    if (!canBePostFixOperator(next.kind)) {
+      const operator = this.nextToken();
+      const operand = this.parseBinaryExpression(unaryOperatorPrecedence);
+      return createExpressionNode({kind: SyntaxNodeKind.UnaryExpressionSyntax, operator, operand, post: false});
+    }
+
+    // Postfix operators
+    const literal = this.parsePrimaryExpression();
+    this.nextToken();
+
+    // while you only can do a++ or a--, call()?.something(), here ? is a valid postfix
+    if (supportsOnlyNameExpression(next.kind) && literal.kind !== SyntaxNodeKind.NameExpressionSyntax) {
+      this.diagnostics.reportCanOnlyUsePostfixOnNameExpression(literal.span)
+      return createExpressionNode({
+        kind: SyntaxNodeKind.LiteralExpressionSyntax,
+        type: TypeSymbol.error,
+        value: null
+      })
+    }
+
+    return createExpressionNode({
+      kind: SyntaxNodeKind.UnaryExpressionSyntax,
+      operand: literal,
+      operator: next,
+      post: true
+    });
+
+
+  }
+
+  private parseBinaryExpression(parentPrecedence: number = 0): ExpressionSyntax & SyntaxNode {
+    let left: ExpressionSyntax & SyntaxNode = this.parseUnaryExpression();
 
     while (true) {
       const precedence = getBinaryOperatorPrecedence(this.current().kind)

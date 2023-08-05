@@ -11,7 +11,6 @@ import {Javascript} from "../transformer/javascript-source.js";
 import {parse} from 'node:path'
 
 
-
 export class PHPFile {
   public readonly filename: string;
   public readonly source: Source;
@@ -48,6 +47,7 @@ export class PHPFile {
 
     if (this.diagnostic.items.length) {
       this.source.printDiagnostics(this.diagnostic);
+      return;
     }
 
 
@@ -58,7 +58,7 @@ export class PHPFile {
   }
 
   static async create(path: string) {
-    const buffer = await fs.promises.readFile(process.cwd()+path);
+    const buffer = await fs.promises.readFile(process.cwd() + path);
     if (!buffer) return false;
 
     const source = buffer.toString('utf-8');
@@ -73,11 +73,11 @@ export class PHPFile {
     const pathInfo = parse(path)
 
     // Store result
-    const target = process.cwd()+globalThis.__PHP__store.transpiled+'/'+pathInfo.name+'.js';
+    const target = process.cwd() + globalThis.__PHP__store.transpiled + '/' + pathInfo.name + '.js';
     await fs.promises.writeFile(target, result);
 
     // es modules are weird with dynamic's. Both the import as the default need to resolve
-    const imported = await (await import('file://'+target)).default;
+    const imported = await (await import('file://' + target)).default;
 
     Object.assign(file, {handler: imported});
     globalThis.__PHP__store.files.set(path, file);

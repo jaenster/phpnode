@@ -28,7 +28,7 @@ import {
   VariableStatementSyntax,
   WhileStatementSyntax
 } from "../source/syntax/statement.syntax.js";
-import {SyntaxNodeKind} from "../source/syntax/syntax.node.js";
+import {SyntaxNode, SyntaxNodeKind} from "../source/syntax/syntax.node.js";
 import {BoundKind, BoundNode, createBoundExpression, createBoundSpecial, createBoundStatement} from "./bound.node.js";
 import {ElseClause, FileSyntax, ParametersSyntax} from "../source/syntax/special.syntax.js";
 import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
@@ -300,12 +300,6 @@ export class Binder {
 
       this.diagnostics.reportUndefinedBinaryOperator(span, syntax.operator.text, left.type, right.type);
       return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error});
-    }
-
-
-    // Cases to convert
-    if (operator.kind === BoundBinaryOperatorKind.MemberAccess) {
-      console.log('');
     }
 
     return createBoundExpression({

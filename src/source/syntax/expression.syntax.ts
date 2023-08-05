@@ -3,6 +3,7 @@ import type {TypeSymbol} from "../../symbols/symbols.js";
 import type {SyntaxNodeKind} from "./syntax.node.js";
 import {SyntaxNode} from "./syntax.node.js";
 import {SyntaxToken} from "../lexer.js";
+import {Modifiers} from "./syntax.facts.js";
 
 
 export type ExpressionSyntax = (
@@ -27,7 +28,7 @@ export type BinaryExpressionSyntax = {
   kind: SyntaxNodeKind.BinaryExpressionSyntax,
   left: ExpressionSyntax&SyntaxNode,
   operator: SyntaxToken,
-  right: ExpressionSyntax&SyntaxNode
+  right: ExpressionSyntax&SyntaxNode,
 }
 
 export type CommaExpressionSyntax = {

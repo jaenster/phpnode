@@ -16,9 +16,8 @@ const enum PrecedenceKind {
   Unary,
   Prefix,
   Postfix,
-  MemberAccess,
-  NewCall,
-  FunctionCall,
+  New,
+  FunctionCallMemberAccess,
 }
 
 export function getUnaryOperatorPrecedence(kind: SyntaxKind, next: SyntaxKind) {
@@ -33,7 +32,7 @@ export function getUnaryOperatorPrecedence(kind: SyntaxKind, next: SyntaxKind) {
       return PrecedenceKind.Unary;
 
     case SyntaxKind.NewKeyword:
-      return PrecedenceKind.NewCall
+      return PrecedenceKind.New
 
     default:
       switch (next) {
@@ -79,12 +78,12 @@ export function getBinaryOperatorPrecedence(kind: SyntaxKind) {
       return PrecedenceKind.MultiplicationDivision;
 
     case SyntaxKind.ParenLToken:
-      return PrecedenceKind.FunctionCall;
+      return PrecedenceKind.FunctionCallMemberAccess;
 
     // It's not really considered an operator in PHP, but, to parse it, treat it as one
     case SyntaxKind.ArrowToken:
     case SyntaxKind.ColonColonToken:
-      return PrecedenceKind.MemberAccess;
+      return PrecedenceKind.FunctionCallMemberAccess;
 
     default:
       return PrecedenceKind.None;
