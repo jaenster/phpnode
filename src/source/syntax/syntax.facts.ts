@@ -124,12 +124,16 @@ export enum Modifiers {
   // Dont convert
   TranspilerInternal = 1 << 8,
   TranspilerParen = 1 << 9,
-  TranspilerSync = 1 << 9,
+  TranspilerSync = 1 << 10,
 
   AllowedInClass = Abstract | Final,
   AllowedOnMethod = Abstract | Final | Public | Protected | Private | Static,
   AllowedOnProperty = Static | Readonly | Public | Private | Protected,
   AllowedInBinaryExpression = New,
+}
+
+export function isModifierSet({modifiers: a}: {modifiers: Modifiers}, b: Modifiers) {
+  return (a & b) === b;
 }
 
 export const ModifiersCollides = [

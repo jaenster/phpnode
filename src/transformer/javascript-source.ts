@@ -5,21 +5,26 @@ import {
   BoundCommaExpression,
   BoundEmptyExpression,
   BoundLiteralExpression,
-  BoundNameExpression, BoundParenExpression,
+  BoundNameExpression,
+  BoundParenExpression,
   BoundUnaryExpression,
   BoundVariableExpression
 } from "../binder/bound-expression.js";
 import {
   BoundBlockStatement,
   BoundBodyStatement,
-  BoundBreakStatement, BoundClassStatement,
+  BoundBreakStatement,
+  BoundClassStatement,
   BoundContinueStatement,
   BoundExpressionStatement,
-  BoundForStatement, BoundFunctionStatement,
+  BoundForStatement,
+  BoundFunctionStatement,
   BoundIfStatement,
   BoundJumpConditionalStatement,
   BoundJumpStatement,
-  BoundLabelStatement, BoundMethodStatement, BoundPropertyStatement,
+  BoundLabelStatement,
+  BoundMethodStatement,
+  BoundPropertyStatement,
   BoundReturnStatement,
   BoundSemiColonStatement,
   BoundVariableStatement,
@@ -29,6 +34,7 @@ import {ToSource} from "./to-source.js";
 import {BoundBinaryOperator, BoundBinaryOperatorKind, BoundUnaryOperatorKind} from "../binder/bound-operator.js";
 import {KeywordsByName, KeywordsBySyntax} from "../source/syntax/keywords.js";
 import {BoundScope} from "../binder/bound-scope.js";
+import {isModifierSet, Modifiers} from "../source/syntax/syntax.facts.js";
 
 function escape(string: string) {
   return JSON.stringify(string).slice(1, -1);
@@ -90,7 +96,6 @@ export default __php__file("${escape(node.filename)}", async () => {`
     return source.join('\n');
   }
 
-
   toSourceAssignmentExpression(node: BoundAssignmentExpression): string {
     return node.variable.name + ' = ' + this.toSourceExpression(node.expression);
   }
@@ -100,10 +105,11 @@ export default __php__file("${escape(node.filename)}", async () => {`
     const right = this.toSourceExpression(node.right);
     const operator = node.operator;
 
+    const prefixes = isModifierSet(node, Modifiers.TranspilerSync) ? '' : 'await '
     if (operator === BoundBinaryOperator.call) {
-      return 'await ' + left + "(" + right + ")";
+      return prefixes + left + "(" + right + ")";
     } else if (operator === BoundBinaryOperator.memberCall) {
-      return 'await ' + left + "(" + right + ")";
+      return prefixes + left + "(" + right + ")";
     }
 
     const operatorString = binaryOperators[node.operator.kind];
@@ -221,7 +227,7 @@ export default __php__file("${escape(node.filename)}", async () => {`
 
   toSourceMethodStatement(node: BoundMethodStatement) {
     const lines = [];
-    lines.push(`${this.ident}${node.name}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
+    lines.push(`${this.ident}async ${node.name}(${node.parameters.map(el => el.variable.name).join(', ')}) {`);
     this.addIndent();
     for (const statement of node.statements) {
       lines.push(this.ident + this.toSourceStatement(statement));
