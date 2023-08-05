@@ -4,6 +4,7 @@ const enum PrecedenceKind {
   None,
   LogicalOr,
   LogicalAnd,
+  At,
 
   BitwiseAnd,
   BitwiseOr,
@@ -12,6 +13,7 @@ const enum PrecedenceKind {
   Equality,
   AdditionSubtraction, // Plus Minus Concatenation(.)
   MultiplicationDivision,
+  Exponentiation,
 
   Unary,
   Prefix,
@@ -31,6 +33,9 @@ export function getUnaryOperatorPrecedence(kind: SyntaxKind, next: SyntaxKind) {
     case SyntaxKind.TildeToken:
       return PrecedenceKind.Unary;
 
+    case SyntaxKind.AtToken:
+      return PrecedenceKind.At;
+
     case SyntaxKind.NewKeyword:
       return PrecedenceKind.New
 
@@ -47,6 +52,7 @@ export function getUnaryOperatorPrecedence(kind: SyntaxKind, next: SyntaxKind) {
 
 export function getBinaryOperatorPrecedence(kind: SyntaxKind) {
   switch (kind) {
+    case SyntaxKind.QuestionQuestionToken:
     case SyntaxKind.PipePipeToken:
       return PrecedenceKind.LogicalOr;
 
@@ -66,15 +72,22 @@ export function getBinaryOperatorPrecedence(kind: SyntaxKind) {
       return PrecedenceKind.AdditionSubtraction;
 
     case SyntaxKind.EqualEqualToken:
+    case SyntaxKind.EqualEqualEqualToken:
     case SyntaxKind.ExclamationEqualToken:
+    case SyntaxKind.ExclamationEqualEqualToken:
     case SyntaxKind.LessToken:
     case SyntaxKind.LessEqualToken:
     case SyntaxKind.GreaterToken:
     case SyntaxKind.GreaterEqualToken:
+    case SyntaxKind.LessEqualGreaterToKen:
       return PrecedenceKind.Equality;
+
+    case SyntaxKind.StarStarToken:
+      return PrecedenceKind.Exponentiation;
 
     case SyntaxKind.StarToken:
     case SyntaxKind.SlashToken:
+    case SyntaxKind.PercentageToken:
       return PrecedenceKind.MultiplicationDivision;
 
     case SyntaxKind.ParenLToken:

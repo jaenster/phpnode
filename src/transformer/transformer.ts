@@ -2,6 +2,7 @@ import {
   BoundBlockStatement,
   BoundBodyStatement,
   BoundBreakStatement,
+  BoundCaseStatement,
   BoundClassStatement,
   BoundContinueStatement,
   BoundEchoStatement,
@@ -11,11 +12,13 @@ import {
   BoundIfStatement,
   BoundJumpConditionalStatement,
   BoundJumpStatement,
-  BoundLabelStatement, BoundMethodStatement,
+  BoundLabelStatement,
+  BoundMethodStatement,
   BoundPropertyStatement,
   BoundReturnStatement,
   BoundSemiColonStatement,
   BoundStatement,
+  BoundSwitchStatement,
   BoundVariableStatement,
   BoundWhileStatement
 } from "../binder/bound-statement.js";
@@ -27,7 +30,8 @@ import {
   BoundErrorExpression,
   BoundExpression,
   BoundLiteralExpression,
-  BoundNameExpression, BoundParenExpression,
+  BoundNameExpression,
+  BoundParenExpression,
   BoundUnaryExpression,
   BoundVariableExpression
 } from "../binder/bound-expression.js";
@@ -90,8 +94,55 @@ export abstract class Transformer {
         return this.transformReturnStatement(statement);
       case BoundKind.BoundEchoStatement:
         return this.transformEchoStatement(statement);
+      case BoundKind.BoundSwitchStatement:
+        return this.transformSwitchStatement(statement);
     }
     throw new Error(`Unexpected ${BoundKind[statement.kind]}`);
+  }
+
+
+  transformCaseStatement(node: BoundCaseStatement): BoundCaseStatement {
+    const expression = this.transformExpression(node.expression);
+    const statements: BoundStatement[] = []
+
+    let isNew = expression !== node.expression;
+    for (const member of node.statements) {
+      const other = this.transformStatement(member);
+      isNew ||= other !== member;
+      statements.push(other);
+    }
+
+    if (isNew) {
+      return createBoundStatement({
+        kind: BoundKind.BoundCaseStatement,
+        expression,
+        statements,
+      })
+    }
+    return node;
+  }
+
+  transformSwitchStatement(node: BoundSwitchStatement) {
+    const expression = this.transformExpression(node.expression);
+    const cases: BoundCaseStatement[] = []
+
+    let isNew = expression !== node.expression;
+    for (const member of node.cases) {
+      const other = this.transformCaseStatement(member);
+      isNew ||= other !== member;
+      cases.push(other);
+    }
+
+    if (isNew) {
+      return createBoundStatement({
+        kind: BoundKind.BoundSwitchStatement,
+        expression,
+        cases,
+        break: node.break,
+        continue: node.continue,
+      })
+    }
+    return node;
   }
 
   transformEchoStatement(node: BoundEchoStatement): BoundStatement {
@@ -253,7 +304,7 @@ export abstract class Transformer {
       case BoundKind.BoundParenExpression:
         return this.transformParenExpression(node)
     }
-    throw new Error('Unexpected expression '+BoundKind[node?.kind]);
+    throw new Error('Unexpected expression ' + BoundKind[node?.kind]);
   }
 
 
@@ -327,8 +378,12 @@ export abstract class Transformer {
     }
 
     if (changed) {
-      const last = expressions[expressions.length-1]
-      return createBoundExpression({kind: BoundKind.BoundCommaExpression, type: last.type ?? TypeSymbol.void, expressions});
+      const last = expressions[expressions.length - 1]
+      return createBoundExpression({
+        kind: BoundKind.BoundCommaExpression,
+        type: last.type ?? TypeSymbol.void,
+        expressions
+      });
     }
 
     return node;

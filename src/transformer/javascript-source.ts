@@ -13,7 +13,7 @@ import {
 import {
   BoundBlockStatement,
   BoundBodyStatement,
-  BoundBreakStatement,
+  BoundBreakStatement, BoundCaseStatement,
   BoundClassStatement,
   BoundContinueStatement,
   BoundExpressionStatement,
@@ -26,7 +26,7 @@ import {
   BoundMethodStatement,
   BoundPropertyStatement,
   BoundReturnStatement,
-  BoundSemiColonStatement,
+  BoundSemiColonStatement, BoundSwitchStatement,
   BoundVariableStatement,
   BoundWhileStatement
 } from "../binder/bound-statement.js";
@@ -47,6 +47,28 @@ function escape(string: string) {
 const binaryOperators = {
   [BoundBinaryOperatorKind.Addition]: '+',
   [BoundBinaryOperatorKind.MemberAccess]: '.',
+  [BoundBinaryOperatorKind.StaticMemberAccess]: '.',
+  [BoundBinaryOperatorKind.Nullish]: '??',
+
+  [BoundBinaryOperatorKind.Subtraction]: '-',
+  [BoundBinaryOperatorKind.Multiplication]: '*',
+  [BoundBinaryOperatorKind.Expo]: '**',
+  [BoundBinaryOperatorKind.Division]: '/',
+  [BoundBinaryOperatorKind.LogicalAnd]: '&&',
+  [BoundBinaryOperatorKind.LogicalOr]: '||',
+  [BoundBinaryOperatorKind.Equals]: '==',
+  [BoundBinaryOperatorKind.NotEquals]: '!=',
+  [BoundBinaryOperatorKind.StrictEqual]: '===',
+  [BoundBinaryOperatorKind.StrictNotEqual]: '!==',
+  [BoundBinaryOperatorKind.Less]: '<',
+  [BoundBinaryOperatorKind.LessEqual]: '<=',
+  [BoundBinaryOperatorKind.Greater]: '>',
+  [BoundBinaryOperatorKind.GreaterEqual]: '>=',
+
+  [BoundBinaryOperatorKind.BitwiseAnd]: '&',
+  [BoundBinaryOperatorKind.BitwiseOr]: '|',
+  [BoundBinaryOperatorKind.BitwiseXor]: '^',
+
 } as const
 
 const unaryOperators = {
@@ -70,22 +92,22 @@ export class Javascript extends ToSource {
   }
 
   toSourceDeclareImports(node: BoundNode) {
-    let imports = new MapExt<string, string[]>(() => []);
-    imports.get('@jaenster/php-native').push('__php__file');
-    for(const child of BoundNode.traverse(node)) {
-      switch(child.kind) {
+    let imports = new MapExt<string, Set<string>>(() => new Set);
+    imports.get('@jaenster/php-native').add('__php__file');
+    for (const child of BoundNode.traverse(node)) {
+      switch (child.kind) {
         case BoundKind.BoundNameExpression: {
 
           if (child.variable instanceof BuildInSymbol && child.variable.imported) {
-            imports.get(child.variable.importedFrom).push(child.variable.name);
+            imports.get(child.variable.importedFrom).add(child.variable.name);
           }
         }
       }
     }
 
     const lines = [];
-    for(const [name, fields] of imports) {
-      lines.push(this.ident+'import {'+fields.join(', ')+'} from "'+escape(name)+'"')
+    for (const [name, fields] of imports) {
+      lines.push(this.ident + 'import {' + [...fields].join(', ') + '} from "' + escape(name) + '"')
     }
     return lines.join('\n');
   }
@@ -172,7 +194,7 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceExpressionStatement(node: BoundExpressionStatement): string {
-    const expression = this.ident+this.toSourceExpression(node.expression);
+    const expression = this.ident + this.toSourceExpression(node.expression);
     return expression + ';';
   }
 
@@ -246,7 +268,7 @@ export default __php__file("${escape(node.filename)}", async () => {`
       lines.push(this.ident + this.toSourceStatement(statement));
     }
     this.removeIdent();
-    lines.push(`${this.ident}}`)
+    lines.push(`${this.ident}}`);
     return lines.join('\n');
   }
 
@@ -286,5 +308,29 @@ export default __php__file("${escape(node.filename)}", async () => {`
 
   toSourceEmptyExpression(statement: BoundEmptyExpression): string {
     return "";
+  }
+
+  toSourceSwitchStatement(node: BoundSwitchStatement): string {
+    const lines = [];
+    lines.push(this.ident+'switch ('+this.toSourceExpression(node.expression)+') {');
+    this.addIndent();
+    for(const caseNode of node.cases) {
+      lines.push(this.toSourceCaseStatement(caseNode));
+    }
+    this.removeIdent();
+    lines.push(this.ident+'}')
+    return lines.join('\n');
+  }
+
+  toSourceCaseStatement(node: BoundCaseStatement): string {
+    const lines = [];
+    lines.push(this.ident+'case '+this.toSourceExpression(node.expression)+':');
+    this.addIndent();
+    for(const statement of node.statements) {
+      lines.push(this.ident+this.toSourceStatement(statement));
+    }
+    this.removeIdent();
+
+    return lines.join('\n');
   }
 }

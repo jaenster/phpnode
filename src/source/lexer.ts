@@ -385,9 +385,11 @@ export class Lexer {
               this.position++;
               break;
             case 'r':
+              this.position+=2;
               literal.push('\r');
               continue;
             case 'n':
+              this.position+=2;
               literal.push('\n');
               continue;
             default:

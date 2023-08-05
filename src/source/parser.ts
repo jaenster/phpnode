@@ -3,6 +3,7 @@ import {SyntaxToken} from "./lexer.js";
 import {Diagnostics} from "../common/diagnostics.js";
 import {
   BlockStatementSyntax,
+  CaseStatementSyntax,
   ExpressionStatementSyntax,
   FunctionStatementSyntax,
   PropertyStatementSyntax,
@@ -86,8 +87,6 @@ export class Parser {
         break;
       case SyntaxKind.StaticKeyword:
         break;
-      case SyntaxKind.SwitchKeyword:
-        break;
       case SyntaxKind.ThrowKeyword:
         break;
       case SyntaxKind.TraitKeyword:
@@ -127,6 +126,8 @@ export class Parser {
         return this.parseReturnStatement();
       case SyntaxKind.EchoKeyword:
         return this.parseEchoStatement();
+      case SyntaxKind.SwitchKeyword:
+        return this.parseSwitchStatement()
     }
     return this.parseExpressionStatement()
   }
@@ -565,7 +566,6 @@ export class Parser {
     if (this.current().kind === SyntaxKind.FunctionKeyword) {
       return this.parseFunction(modifiers)
     } else {
-
       const [hasType, type] = this.optional(SyntaxKind.IdentifierToken);
       if (this.current().kind !== SyntaxKind.VariableToken) {
         this.optional(SyntaxKind.SemiColonToken);
@@ -595,6 +595,10 @@ export class Parser {
     const methods = [] as FunctionStatementSyntax[];
     const properties = [] as PropertyStatementSyntax[];
     do {
+      if (this.current().kind === SyntaxKind.BraceRToken) {
+        this.nextToken();
+        break;
+      }
       const member = this.parseClassMember();
       switch (member.kind) {
         case SyntaxNodeKind.FunctionStatementSyntax:
@@ -606,10 +610,6 @@ export class Parser {
         default:
           this.diagnostics.reportExpectedPropertyOrMember(this.current().span)
           break;
-      }
-      if (this.current().kind === SyntaxKind.BraceRToken) {
-        this.nextToken();
-        break;
       }
     } while (this.current().kind !== SyntaxKind.EOF)
     return {methods, properties};
@@ -650,5 +650,48 @@ export class Parser {
       properties,
       name
     })
+  }
+
+  private parseCaseStatement(): CaseStatementSyntax {
+    const keyword = this.match(SyntaxKind.CaseKeyword);
+    const expression = this.parseExpression();
+    const colon = this.match(SyntaxKind.ColonToken);
+    const statements: StatementSyntax[] = [];
+
+    let current: SyntaxToken;
+    while ((current = this.current())
+    && current.kind !== SyntaxKind.CaseKeyword
+    && current.kind !== SyntaxKind.BraceRToken
+    && current.kind !== SyntaxKind.EOF) {
+      statements.push(this.parseStatement());
+    }
+    return createStatementNode({
+      kind: SyntaxNodeKind.CaseStatementSyntax,
+      keyword,
+      expression,
+      colon,
+      statements,
+    });
+  }
+
+  private parseSwitchStatement() {
+    const keyword = this.match(SyntaxKind.SwitchKeyword);
+    const expression = this.parseParenExpression();
+
+    const open = this.match(SyntaxKind.BraceLToken);
+    const cases: CaseStatementSyntax[] = []
+    while (this.current().kind !== SyntaxKind.BraceRToken) {
+      cases.push(this.parseCaseStatement())
+    }
+    const close = this.match(SyntaxKind.BraceRToken);
+
+    return createStatementNode({
+      kind: SyntaxNodeKind.SwitchStatementSyntax,
+      keyword,
+      expression,
+      open,
+      close,
+      cases,
+    });
   }
 }

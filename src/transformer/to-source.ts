@@ -1,14 +1,14 @@
 import {BoundFile} from "../binder/bound-special.js";
 import {
   BoundBlockStatement,
-  BoundBodyStatement, BoundBreakStatement, BoundClassStatement, BoundContinueStatement,
+  BoundBodyStatement, BoundBreakStatement, BoundCaseStatement, BoundClassStatement, BoundContinueStatement,
   BoundExpressionStatement,
   BoundForStatement, BoundFunctionStatement,
   BoundIfStatement,
   BoundJumpConditionalStatement,
   BoundJumpStatement,
   BoundLabelStatement, BoundMethodStatement, BoundPropertyStatement, BoundReturnStatement, BoundSemiColonStatement,
-  BoundStatement, BoundVariableStatement, BoundWhileStatement
+  BoundStatement, BoundSwitchStatement, BoundVariableStatement, BoundWhileStatement
 } from "../binder/bound-statement.js";
 import {
   BoundAssignmentExpression,
@@ -114,6 +114,8 @@ export abstract class ToSource {
       // Statements that are valid expressions
       case BoundKind.BoundMethodStatement:
         return this.toSourceMethodStatement(node);
+      case BoundKind.BoundSwitchStatement:
+        return this.toSourceSwitchStatement(node);
     }
     throw new Error('Did not implement ' + BoundKind[node.kind]);
   }
@@ -147,6 +149,10 @@ export abstract class ToSource {
   }
 
   abstract toSourceParenExpression(node: BoundParenExpression): string
+
+
+  abstract toSourceSwitchStatement(node: BoundSwitchStatement): string
+  abstract toSourceCaseStatement(node: BoundCaseStatement): string
 }
 
 

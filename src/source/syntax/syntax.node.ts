@@ -38,6 +38,9 @@ export enum SyntaxNodeKind {
   FunctionStatementSyntax,
   ClassStatementSyntax,
   PropertyStatementSyntax,
+  PrintStatementSyntax,
+  CaseStatementSyntax,
+  SwitchStatementSyntax,
 }
 
 

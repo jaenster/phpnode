@@ -25,6 +25,8 @@ export type BoundStatement = (
   | BoundVariableStatement
   | BoundWhileStatement
   | BoundEchoStatement
+  | BoundSwitchStatement
+  | BoundCaseStatement
   | BoundFile
   ) & { parent?: BoundNodeTypes }
 
@@ -129,3 +131,16 @@ export type BoundPropertyStatement = {
   name: string,
   init?: BoundExpression;
 }
+
+export type BoundSwitchStatement = {
+  kind: BoundKind.BoundSwitchStatement,
+  expression: BoundExpression,
+  cases: BoundCaseStatement[],
+  break: BoundLabel,
+  continue: BoundLabel,
+};
+export type BoundCaseStatement = {
+  kind: BoundKind.BoundCaseStatement,
+  expression: BoundExpression,
+  statements: BoundStatement[],
+};

@@ -44,32 +44,44 @@ export enum BoundKind {
   BoundMethodStatement,
   BoundClassStatement,
   BoundPropertyStatement,
+  BoundSwitchStatement,
+  BoundCaseStatement,
 }
 
 export type BoundNodeTypes = (BoundExpression | BoundStatement | BoundSpecial) & { parent?: BoundNodeTypes };
 
-export function createBoundExpression<T extends BoundExpression>(value: BoundNodeTypes): T & BoundNode {
-  const instance = new BoundNode() as BoundNode&T;
+export function createPlaceholder<T extends BoundStatement>(p: T): T {
+  const placeholder = new BoundNode() as BoundNode & T;
+  Object.assign(placeholder, p, {fields: Object.keys(p)});
+  return placeholder;
+}
+
+/** @internal */
+function create(value: any): any {
+  if (value instanceof BoundNode) {
+    wrapParent(value as BoundNode & BoundNodeTypes);
+    Object.assign(value, {debugKindName: BoundKind[value.kind]});
+    return value;
+  }
+  const instance = (value instanceof BoundNode ? value : new BoundNode()) as BoundNode & BoundNodeTypes;
   Object.assign(instance, value, {fields: Object.keys(value)}, {debugKindName: BoundKind[value.kind]});
   wrapParent(instance)
   return instance;
+}
+
+export function createBoundExpression<T extends BoundExpression>(value: BoundNodeTypes): T & BoundNode {
+  return create(value);
 }
 
 export function createBoundStatement<T extends BoundStatement>(value: BoundNodeTypes): T & BoundNode {
-  const instance = new BoundNode() as BoundNode&T;
-  Object.assign(instance, value, {fields: Object.keys(value)}, {debugKindName: BoundKind[value.kind]});
-  wrapParent(instance)
-  return instance;
+  return create(value);
 }
 
 export function createBoundSpecial<T extends BoundSpecial>(value: BoundNodeTypes): T & BoundNode {
-  const instance = new BoundNode() as BoundNode&T;
-  Object.assign(instance, value, {fields: Object.keys(value)}, {debugKindName: BoundKind[value.kind]});
-  wrapParent(instance)
-  return instance;
+  return create(value);
 }
 
-function wrapParent(parent: { parent: BoundNodeTypes } & BoundNodeTypes) {
+export function wrapParent(parent: { parent: BoundNodeTypes } & BoundNodeTypes) {
   switch (parent.kind) {
     case BoundKind.BoundVariableExpression:
     case BoundKind.BoundSemiColonStatement:
@@ -199,25 +211,26 @@ export class BoundNode {
   set parent(v: BoundNode & BoundNodeTypes) {
     this.#parent = v ? new WeakRef(v) : undefined;
   }
+
   get parent() {
     return this.#parent?.deref();
   }
 
-  static *traverse(parent: BoundNode): Generator<BoundNodeTypes> {
+  static* traverse(parent: BoundNode): Generator<BoundNodeTypes> {
     if (!(parent instanceof BoundNode)) {
       return
     }
-    yield (parent as BoundNodeTypes&BoundNode);
+    yield (parent as BoundNodeTypes & BoundNode);
 
     for (const field of parent.fields) {
       if (field === 'kind') continue;
       const node = parent[field] as unknown as BoundNodeTypes;
       if (node instanceof BoundNode) {
-        yield *this.traverse(node);
+        yield* this.traverse(node);
       } else if (Array.isArray(node)) {
-        for(const child of (node as Array<BoundNode>)) {
+        for (const child of (node as Array<BoundNode>)) {
           if (child instanceof BoundNode) {
-            yield *this.traverse(child);
+            yield* this.traverse(child);
           }
         }
       }

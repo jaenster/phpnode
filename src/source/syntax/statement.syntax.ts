@@ -2,6 +2,7 @@ import type {ElseClause, ParametersSyntax, TypeClause} from "./special.syntax.js
 import type {ExpressionSyntax} from "./expression.syntax.js";
 import {SyntaxToken} from "../lexer.js";
 import {SyntaxNodeKind} from "./syntax.node.js";
+import {SyntaxKind} from "./syntax.kind.js";
 
 export type StatementSyntax =
   | BlockStatementSyntax
@@ -18,6 +19,9 @@ export type StatementSyntax =
   | VariableStatementSyntax
   | WhileStatementSyntax
   | EchoStatementSyntax
+  | PrintStatementSyntax
+  | CaseStatementSyntax
+  | SwitchStatementSyntax
 
 
 // Never for now, will be a thing later
@@ -110,3 +114,25 @@ export type EchoStatementSyntax = {
   keyword: SyntaxToken,
   expression: ExpressionSyntax,
 }
+export type PrintStatementSyntax = {
+  kind: SyntaxNodeKind.PrintStatementSyntax,
+  keyword: SyntaxToken,
+  expression: ExpressionSyntax,
+};
+
+export type CaseStatementSyntax = {
+  kind: SyntaxNodeKind.CaseStatementSyntax,
+  keyword: SyntaxToken,
+  expression: ExpressionSyntax,
+  colon: SyntaxToken,
+  statements: StatementSyntax[],
+}
+
+export type SwitchStatementSyntax = {
+  kind: SyntaxNodeKind.SwitchStatementSyntax,
+  keyword: SyntaxToken,
+  expression: ExpressionSyntax,
+  open: SyntaxToken,
+  cases: CaseStatementSyntax[],
+  close: SyntaxToken
+};

@@ -1,11 +1,13 @@
 import {
   BoundBodyStatement,
+  BoundCaseStatement,
   BoundContinueStatement,
   BoundExpressionStatement,
   BoundMethodStatement,
   BoundPropertyStatement,
   BoundSemiColonStatement,
   BoundStatement,
+  BoundSwitchStatement,
   BoundVariableStatement
 } from "./bound-statement.js";
 import {BoundScope} from "./bound-scope.js";
@@ -14,6 +16,7 @@ import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {
   BlockStatementSyntax,
   BreakStatementSyntax,
+  CaseStatementSyntax,
   ClassStatementSyntax,
   ContinueStatementSyntax,
   EchoStatementSyntax,
@@ -25,11 +28,19 @@ import {
   ReturnStatementSyntax,
   SemiColonSyntax,
   StatementSyntax,
+  SwitchStatementSyntax,
   VariableStatementSyntax,
   WhileStatementSyntax
 } from "../source/syntax/statement.syntax.js";
-import {SyntaxNode, SyntaxNodeKind} from "../source/syntax/syntax.node.js";
-import {BoundKind, BoundNode, createBoundExpression, createBoundSpecial, createBoundStatement} from "./bound.node.js";
+import {SyntaxNodeKind} from "../source/syntax/syntax.node.js";
+import {
+  BoundKind,
+  BoundNode,
+  createBoundExpression,
+  createBoundSpecial,
+  createBoundStatement,
+  createPlaceholder
+} from "./bound.node.js";
 import {ElseClause, FileSyntax, ParametersSyntax} from "../source/syntax/special.syntax.js";
 import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {MapExt} from "map-ext";
@@ -45,19 +56,14 @@ import {
   UnaryExpressionSyntax
 } from "../source/syntax/expression.syntax.js";
 import {BoundExpression} from "./bound-expression.js";
-import {
-  BoundBinaryOperator,
-  BoundBinaryOperatorKind,
-  BoundUnaryOperator,
-  BoundUnaryOperatorKind
-} from "./bound-operator.js";
+import {BoundBinaryOperator, BoundUnaryOperator, BoundUnaryOperatorKind} from "./bound-operator.js";
 import {TextSpan} from "../common/text-span.js";
 import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 import {SyntaxToken} from "../source/lexer.js";
 import {ModifierMapping, Modifiers} from "../source/syntax/syntax.facts.js";
 
 export class Binder {
-  private currentLoop: Array<Omit<BoundBodyStatement, 'statement'>> = [];
+  private currentBreakContinueTarget: Array<{break: BoundLabel, continue: BoundLabel}> = [];
 
   public scope: BoundScope;
   public last: BoundNode;
@@ -107,7 +113,8 @@ export class Binder {
         return this.bindEchoStatementSyntax(syntax);
       case SyntaxNodeKind.ReturnStatementSyntax:
         return this.bindReturnStatementSyntax(syntax);
-
+      case SyntaxNodeKind.SwitchStatementSyntax:
+        return this.bindSwitchStatementSyntax(syntax);
     }
     throw new Error(`Unexpected syntax ${SyntaxNodeKind[syntax?.kind]}`)
   }
@@ -203,21 +210,19 @@ export class Binder {
   }
 
   private bindBodyStatement(syntax: StatementSyntax): BoundBodyStatement {
-    // Because a body can contain a break or contine, already create the incomplete statement
-    const continueLabel = this.createLabel('continue');
-    const breakLabel = this.createLabel('break');
-
-    const boundBody = createBoundStatement<BoundBodyStatement>({
+    // Because a body can contain a break or continue, already create the incomplete statement
+    const placeholder = createPlaceholder<BoundBodyStatement>({
       kind: BoundKind.BoundBodyStatement,
-      continue: continueLabel,
+      break: this.createLabel('break'),
+      continue: this.createLabel('continue'),
       statement: undefined,
-      break: breakLabel,
     })
 
-    this.currentLoop.push(boundBody);
-    boundBody.statement = this.bindStatement(syntax);
+    this.currentBreakContinueTarget.push(placeholder);
+    placeholder.statement = this.bindStatement(syntax);
+    this.currentBreakContinueTarget.pop()
 
-    return boundBody;
+    return createBoundStatement(placeholder);
   }
 
   // Expressions
@@ -362,7 +367,14 @@ export class Binder {
       // Support syntax "new Foo" without parens
       if (operand.kind === BoundKind.BoundNameExpression) {
         const right = createBoundExpression({kind: BoundKind.BoundEmptyExpression, type: TypeSymbol.void})
-        operand = createBoundExpression({kind: BoundKind.BoundBinaryExpression, left: operand, right: right, type: TypeSymbol.any, modifiers: 0, operator: BoundBinaryOperator.memberCall})
+        operand = createBoundExpression({
+          kind: BoundKind.BoundBinaryExpression,
+          left: operand,
+          right: right,
+          type: TypeSymbol.any,
+          modifiers: 0,
+          operator: BoundBinaryOperator.memberCall
+        })
       }
 
     }
@@ -379,22 +391,22 @@ export class Binder {
   }
 
   private bindContinueStatement(syntax: ContinueStatementSyntax): BoundContinueStatement | BoundSemiColonStatement {
-    if (this.currentLoop.length === 0) {
+    if (this.currentBreakContinueTarget.length === 0) {
       this.diagnostics.reportCannotContinue(syntax.keyword.span);
       return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
     }
 
-    const {continue: label} = this.currentLoop[this.currentLoop.length - 1];
+    const {continue: label} = this.currentBreakContinueTarget[this.currentBreakContinueTarget.length - 1];
     return createBoundStatement({kind: BoundKind.BoundContinueStatement, label});
   }
 
   private bindBreakStatement(syntax: BreakStatementSyntax): BoundContinueStatement | BoundSemiColonStatement {
-    if (this.currentLoop.length === 0) {
+    if (this.currentBreakContinueTarget.length === 0) {
       this.diagnostics.reportCannotBreak(syntax.keyword.span);
       return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
     }
 
-    const {break: label} = this.currentLoop[this.currentLoop.length - 1];
+    const {break: label} = this.currentBreakContinueTarget[this.currentBreakContinueTarget.length - 1];
     return createBoundStatement({kind: BoundKind.BoundBreakStatement, label});
   }
 
@@ -406,21 +418,26 @@ export class Binder {
   }
 
 
-  bindFile(file: FileSyntax): BoundFile&BoundNode {
+  bindFile(file: FileSyntax): BoundFile & BoundNode {
     const statements: BoundStatement[] = []
-    for(const statement of file.body) {
+    for (const statement of file.body) {
       statements.push(this.bindStatement(statement));
     }
 
-    const node = createBoundStatement({kind: BoundKind.BoundFile, statements, filename: file.filename, scope: this.scope});
-    console.log(node.parent);
-    return node as BoundFile&BoundNode;
+    const node = createBoundStatement({
+      kind: BoundKind.BoundFile,
+      statements,
+      filename: file.filename,
+      scope: this.scope
+    });
+
+    return node as BoundFile & BoundNode;
   }
 
 
   private bindModifiers(allowed: Modifiers, modifiers: SyntaxToken[], on: string) {
     let mods = 0;
-    for(const modifier of modifiers) {
+    for (const modifier of modifiers) {
       const flag = ModifierMapping[String(modifier.kind)];
       if ((allowed & flag) !== flag) {
         this.diagnostics.reportModifierNotAllowed(modifier.span, on)
@@ -475,12 +492,12 @@ export class Binder {
     const modifiers = this.bindModifiers(Modifiers.AllowedInClass, syntax.modifiers, 'class');
 
     const methods: BoundMethodStatement[] = [];
-    for(const member of syntax.methods) {
+    for (const member of syntax.methods) {
       methods.push(this.bindFunctionStatement(member));
     }
 
     const properties: BoundPropertyStatement[] = [];
-    for(const member of syntax.properties) {
+    for (const member of syntax.properties) {
       properties.push(this.bindPropertiesStatement(member))
     }
 
@@ -501,5 +518,35 @@ export class Binder {
       kind: BoundKind.BoundReturnStatement,
       expression: this.bindExpression(syntax.expression) as BoundExpression,
     });
+  }
+
+  private bindCaseStatementSyntax(syntax: CaseStatementSyntax): BoundCaseStatement {
+    const expression = this.bindExpression(syntax.expression);
+    const statements = syntax.statements.map(el => this.bindStatement(el));
+
+    return createBoundStatement({
+      kind: BoundKind.BoundCaseStatement,
+      expression,
+      statements,
+    });
+  }
+
+  private bindSwitchStatementSyntax(syntax: SwitchStatementSyntax) {
+    const expression = this.bindExpression(syntax.expression);
+
+    const placeholder = createPlaceholder<BoundSwitchStatement>({
+      kind: BoundKind.BoundSwitchStatement,
+      expression,
+      continue: undefined,
+      break: undefined,
+      cases: undefined,
+    });
+    placeholder.continue = placeholder.break = this.createLabel('break-label');
+    this.currentBreakContinueTarget.push(placeholder)
+
+    placeholder.cases = syntax.cases.map(el => this.bindCaseStatementSyntax(el))
+
+    this.currentBreakContinueTarget.pop();
+    return createBoundStatement(placeholder);
   }
 }
