@@ -45,11 +45,13 @@ export type BoundBodyStatement = {
 export type BoundBreakStatement = {
   kind: BoundKind.BoundBreakStatement,
   label: BoundLabel,
+  depth: number,
 }
 
 export type BoundContinueStatement = {
   kind: BoundKind.BoundContinueStatement,
   label: BoundLabel,
+  depth: number,
 }
 
 export type BoundExpressionStatement = {

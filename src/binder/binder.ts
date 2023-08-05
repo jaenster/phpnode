@@ -63,7 +63,7 @@ import {SyntaxToken} from "../source/lexer.js";
 import {ModifierMapping, Modifiers} from "../source/syntax/syntax.facts.js";
 
 export class Binder {
-  private currentBreakContinueTarget: Array<{break: BoundLabel, continue: BoundLabel}> = [];
+  private currentBreakContinueTarget: Array<{ break: BoundLabel, continue: BoundLabel }> = [];
 
   public scope: BoundScope;
   public last: BoundNode;
@@ -206,7 +206,7 @@ export class Binder {
   private createLabel(name: string): BoundLabel {
     const id = this.labelIds.get(name);
     this.labelIds.set(name, id + 1);
-    return createBoundSpecial({kind: BoundKind.BoundLabel, name: `${name}-${id}`});
+    return createBoundSpecial({kind: BoundKind.BoundLabel, name: `${name}_${id}`, modifiers: 0});
   }
 
   private bindBodyStatement(syntax: StatementSyntax): BoundBodyStatement {
@@ -396,8 +396,15 @@ export class Binder {
       return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
     }
 
-    const {continue: label} = this.currentBreakContinueTarget[this.currentBreakContinueTarget.length - 1];
-    return createBoundStatement({kind: BoundKind.BoundContinueStatement, label});
+    const depth = syntax.depth?.value ?? 1;
+    if (depth > this.currentBreakContinueTarget.length || depth < 0) {
+      this.diagnostics.reportCannotContinueOnThisDepth(syntax.keyword.span);
+      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
+    }
+
+    const {continue: label} = this.currentBreakContinueTarget[this.currentBreakContinueTarget.length - depth];
+
+    return createBoundStatement({kind: BoundKind.BoundContinueStatement, label, depth});
   }
 
   private bindBreakStatement(syntax: BreakStatementSyntax): BoundContinueStatement | BoundSemiColonStatement {
@@ -406,8 +413,14 @@ export class Binder {
       return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
     }
 
-    const {break: label} = this.currentBreakContinueTarget[this.currentBreakContinueTarget.length - 1];
-    return createBoundStatement({kind: BoundKind.BoundBreakStatement, label});
+    const depth = parseInt(syntax.depth?.text) ?? 1;
+    if (depth > this.currentBreakContinueTarget.length || depth < 0) {
+      this.diagnostics.reportCannotBreakOnThisDepth(syntax.keyword.span);
+      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
+    }
+
+    const {break: label} = this.currentBreakContinueTarget[this.currentBreakContinueTarget.length - depth];
+    return createBoundStatement({kind: BoundKind.BoundBreakStatement, label, depth});
   }
 
   private bindEmptyExpression(expression: EmptyExpressionSyntax) {
@@ -541,7 +554,7 @@ export class Binder {
       break: undefined,
       cases: undefined,
     });
-    placeholder.continue = placeholder.break = this.createLabel('break-label');
+    placeholder.continue = placeholder.break = this.createLabel('break');
     this.currentBreakContinueTarget.push(placeholder)
 
     placeholder.cases = syntax.cases.map(el => this.bindCaseStatementSyntax(el))

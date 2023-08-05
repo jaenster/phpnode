@@ -1,4 +1,4 @@
-import {BoundFile} from "../binder/bound-special.js";
+import {BoundFile, BoundLabel} from "../binder/bound-special.js";
 import {
   BoundAssignmentExpression,
   BoundBinaryExpression,
@@ -13,7 +13,8 @@ import {
 import {
   BoundBlockStatement,
   BoundBodyStatement,
-  BoundBreakStatement, BoundCaseStatement,
+  BoundBreakStatement,
+  BoundCaseStatement,
   BoundClassStatement,
   BoundContinueStatement,
   BoundExpressionStatement,
@@ -26,7 +27,8 @@ import {
   BoundMethodStatement,
   BoundPropertyStatement,
   BoundReturnStatement,
-  BoundSemiColonStatement, BoundSwitchStatement,
+  BoundSemiColonStatement,
+  BoundSwitchStatement,
   BoundVariableStatement,
   BoundWhileStatement
 } from "../binder/bound-statement.js";
@@ -182,7 +184,10 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceBreakStatement(node: BoundBreakStatement): string {
-    return "";
+    if (node.depth) {
+      return "break "+node.label.name;
+    }
+    return "break";
   }
 
   toSourceCommaExpression(node: BoundCommaExpression): string {
@@ -190,7 +195,10 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceContinueStatement(node: BoundContinueStatement): string {
-    return "";
+    if (node.depth) {
+      return "continue "+node.label.name;
+    }
+    return "continue";
   }
 
   toSourceExpressionStatement(node: BoundExpressionStatement): string {
@@ -203,7 +211,15 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceIfStatement(node: BoundIfStatement): string {
-    return "";
+    const lines = [];
+    lines.push(this.ident+'if ('+this.toSourceExpression(node.condition)+')');
+    lines.push(this.toSourceStatement(node.body));
+
+    if (node.elseBody) {
+      lines.push(this.ident+'else'+this.toSourceStatement(node));
+    }
+
+    return lines.join('\n')
   }
 
   toSourceJumpConditionalStatement(node: BoundJumpConditionalStatement): string {
@@ -310,8 +326,16 @@ export default __php__file("${escape(node.filename)}", async () => {`
     return "";
   }
 
+  toSourceLabel(node: BoundLabel, lines: string[]) {
+    if (isModifierSet(node, Modifiers.TranspilerExpose)) {
+      lines.push(this.ident+node.name+':');
+    }
+  }
+
   toSourceSwitchStatement(node: BoundSwitchStatement): string {
     const lines = [];
+    this.toSourceLabel(node.break, lines);
+
     lines.push(this.ident+'switch ('+this.toSourceExpression(node.expression)+') {');
     this.addIndent();
     for(const caseNode of node.cases) {
@@ -327,7 +351,7 @@ export default __php__file("${escape(node.filename)}", async () => {`
     lines.push(this.ident+'case '+this.toSourceExpression(node.expression)+':');
     this.addIndent();
     for(const statement of node.statements) {
-      lines.push(this.ident+this.toSourceStatement(statement));
+      lines.push(this.toSourceStatement(statement));
     }
     this.removeIdent();
 

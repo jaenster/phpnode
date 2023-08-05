@@ -34,10 +34,12 @@ export type BlockStatementSyntax = {
 export type BreakStatementSyntax = {
   kind: SyntaxNodeKind.BreakStatementSyntax,
   keyword: SyntaxToken,
+  depth?: SyntaxToken,
 }
 export type ContinueStatementSyntax = {
   kind: SyntaxNodeKind.ContinueStatementSyntax,
   keyword: SyntaxToken,
+  depth?: SyntaxToken,
 }
 export type ExpressionStatementSyntax = {
   kind: SyntaxNodeKind.ExpressionStatementSyntax,

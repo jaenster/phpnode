@@ -1,7 +1,9 @@
 import {Transformer} from "./transformer.js";
 import {
   BoundBlockStatement,
+  BoundBreakStatement,
   BoundClassStatement,
+  BoundContinueStatement,
   BoundEchoStatement,
   BoundStatement
 } from "../binder/bound-statement.js";
@@ -212,12 +214,12 @@ export class PhpConcepts extends Transformer {
           parameters: [],
           scope: node.scope.createChild(),
           statements: [
-              createBoundStatement({
-                kind: BoundKind.BoundReturnStatement,
-                // Expression is class statement which is a valid expression
-                expression: node,
-              })
-            ]
+            createBoundStatement({
+              kind: BoundKind.BoundReturnStatement,
+              // Expression is class statement which is a valid expression
+              expression: node,
+            })
+          ]
         })
       ],
     });
@@ -276,5 +278,23 @@ export class PhpConcepts extends Transformer {
     }
 
     return parent as BoundFile & BoundNode;
+  }
+
+  transformBreakStatement(node: BoundBreakStatement): BoundStatement {
+    if (node.depth > 0) {
+      // Tell the transpiler to add this label in the definition
+      node.label.modifiers |= Modifiers.TranspilerExpose;
+    }
+
+    return node;
+  }
+
+  transformContinueStatement(node: BoundContinueStatement): BoundStatement {
+    if (node.depth > 0) {
+      // Tell the transpiler to add this label in the definition
+      node.label.modifiers = Modifiers.TranspilerExpose;
+    }
+
+    return node;
   }
 }

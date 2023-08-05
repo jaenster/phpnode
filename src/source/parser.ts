@@ -175,12 +175,16 @@ export class Parser {
 
   private parseBreakStatement() {
     const keyword = this.match(SyntaxKind.BreakKeyword);
-    return createStatementNode({kind: SyntaxNodeKind.BreakStatementSyntax, keyword})
+    const [hasDepth,depth] = this.optional(SyntaxKind.NumberToken);
+
+    return createStatementNode({kind: SyntaxNodeKind.BreakStatementSyntax, keyword, depth})
   }
 
   private parseContinueStatement() {
     const keyword = this.match(SyntaxKind.ContinueKeyword);
-    return createStatementNode({kind: SyntaxNodeKind.ContinueStatementSyntax, keyword})
+    const [hasDepth,depth] = this.optional(SyntaxKind.NumberToken);
+
+    return createStatementNode({kind: SyntaxNodeKind.ContinueStatementSyntax, keyword, depth})
   }
 
   private parseExpressionStatement() {

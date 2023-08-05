@@ -61,7 +61,7 @@ export class Diagnostics {
   }
 
   reportCannotBreak(span: TextSpan) {
-    this.report(span, `cannot break without being in a loop`);
+    this.report(span, `cannot break without being in a loop or switch`);
   }
   reportCannotContinue(span: TextSpan) {
     this.report(span, `cannot break without being in a loop`);
@@ -73,5 +73,13 @@ export class Diagnostics {
 
   reportExpectedPropertyOrMember(span: TextSpan) {
     this.report(span, `Expected property or modifier`);
+  }
+
+  reportCannotBreakOnThisDepth(span: TextSpan) {
+    this.report(span, `Cannot break on this depth`);
+  }
+
+  reportCannotContinueOnThisDepth(span: TextSpan) {
+    this.report(span, `Cannot break on this depth`);
   }
 }

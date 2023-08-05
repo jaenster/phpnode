@@ -138,6 +138,7 @@ export enum Modifiers {
   TranspilerInternal = 1 << 8,
   TranspilerParen = 1 << 9,
   TranspilerSync = 1 << 10,
+  TranspilerExpose = 1 << 11,
 
   AllowedInClass = Abstract | Final,
   AllowedOnMethod = Abstract | Final | Public | Protected | Private | Static,
@@ -145,7 +146,7 @@ export enum Modifiers {
   AllowedInBinaryExpression = New,
 }
 
-export function isModifierSet({modifiers: a}: {modifiers: Modifiers}, b: Modifiers) {
+export function isModifierSet({modifiers: a}: { modifiers: Modifiers }, b: Modifiers) {
   return (a & b) === b;
 }
 
