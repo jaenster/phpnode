@@ -46,6 +46,7 @@ export async function __php__namespace(namespaceString: string, key: string, cb)
   if (key) {
     obj[key] = result;
   }
+  return result;
 }
 
 

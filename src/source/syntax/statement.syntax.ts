@@ -48,7 +48,7 @@ export type ExpressionStatementSyntax = {
 export type ForStatementSyntax = {
   kind: SyntaxNodeKind.ForStatementSyntax
   keyword: SyntaxToken,
-  init: ExpressionStatementSyntax | VariableStatementSyntax,
+  init: ExpressionSyntax,
   condition: ExpressionSyntax,
   afterthought: ExpressionSyntax,
   body: StatementSyntax,

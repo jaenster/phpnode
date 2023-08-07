@@ -138,12 +138,9 @@ export class Binder {
   }
 
   private bindForStatementSyntax(syntax: ForStatementSyntax) {
-    const init = syntax.init.kind === SyntaxNodeKind.ExpressionStatementSyntax
-      ? this.bindExpressionStatement(syntax.init)
-      : this.bindVariableStatementSyntax(syntax.init);
-
+    const init = this.bindExpression(syntax.init);
     const condition = this.bindExpression(syntax.condition);
-    const afterthought = this.bindExpression(syntax.afterthought)
+    const afterthought = this.bindExpression(syntax.afterthought);
     const body = this.bindBodyStatement(syntax.body);
 
     return createBoundStatement({kind: BoundKind.BoundForStatement, init, condition, afterthought, body})

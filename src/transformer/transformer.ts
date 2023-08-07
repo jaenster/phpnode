@@ -41,6 +41,7 @@ import {BoundBinaryOperator} from "../binder/bound-operator.js";
 
 export abstract class Transformer {
   public currentBinaryOperator?: BoundBinaryOperator;
+  public currentFunction: BoundFunctionStatement|BoundMethodStatement;
 
   transformFile(node: BoundFile): BoundFile & BoundNode {
     let changed = false
@@ -99,7 +100,6 @@ export abstract class Transformer {
     }
     throw new Error(`Unexpected ${BoundKind[statement.kind]}`);
   }
-
 
   transformCaseStatement(node: BoundCaseStatement): BoundCaseStatement {
     const expression = this.transformExpression(node.expression);
@@ -196,9 +196,7 @@ export abstract class Transformer {
   }
 
   transformForStatement(node: BoundForStatement): BoundStatement {
-    const init = node.init.kind === BoundKind.BoundExpressionStatement
-      ? this.transformExpressionStatement(node.init)
-      : this.transformVariableStatement(node.init)
+    const init = this.transformExpression(node.init);
 
     const condition = this.transformExpression(node.condition);
     const afterthought = this.transformExpression(node.afterthought)
@@ -306,7 +304,6 @@ export abstract class Transformer {
     }
     throw new Error('Unexpected expression ' + BoundKind[node?.kind]);
   }
-
 
   transformParenExpression(node: BoundParenExpression): BoundExpression {
     const expression = this.transformExpression(node.expression);
@@ -424,6 +421,10 @@ export abstract class Transformer {
   transformFunction(node: BoundFunctionStatement): BoundFunctionStatement {
     let changed = false
     const statements: BoundStatement[] = [];
+
+    const last = this.currentFunction;
+    this.currentFunction = node;
+
     for (let i = 0; i < node.statements.length; i++) {
       const statement = node.statements[i];
       const newStatement = this.transformStatement(statement);
@@ -431,6 +432,7 @@ export abstract class Transformer {
       changed ||= newStatement !== statement;
     }
 
+    this.currentFunction = last;
     if (changed) {
       return createBoundStatement({
         kind: BoundKind.BoundFunctionStatement,
@@ -439,6 +441,7 @@ export abstract class Transformer {
         name: node.name,
         type: node.type,
         scope: node.scope,
+        modifiers: node.modifiers,
       })
     }
     return node;
@@ -447,6 +450,10 @@ export abstract class Transformer {
   transformMethod(node: BoundMethodStatement): BoundMethodStatement {
     let changed = false
     const statements: BoundStatement[] = [];
+
+    const last = this.currentFunction;
+    this.currentFunction = node;
+
     for (let i = 0; i < node.statements.length; i++) {
       const statement = node.statements[i];
       const newStatement = this.transformStatement(statement);
@@ -454,6 +461,7 @@ export abstract class Transformer {
       changed ||= newStatement !== statement;
     }
 
+    this.currentFunction = last;
     if (changed) {
       return createBoundStatement({
         kind: BoundKind.BoundMethodStatement,

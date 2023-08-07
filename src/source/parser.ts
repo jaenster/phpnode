@@ -223,10 +223,11 @@ export class Parser {
     const keyword = this.match(SyntaxKind.ForKeyword);
     this.match(SyntaxKind.ParenLToken);
 
-    const init = this.parseVariableDeclaration();
+    // init and condition are full statements are they are seperated by semicolons
+    const init = this.parseExpressionStatement().expression;
     const condition = this.parseExpressionStatement().expression;
+    // Afterthought an expression, not a statement, af its not ended by a semicolon
     const afterthought = this.parseExpression();
-
 
     this.match(SyntaxKind.ParenRToken);
     const body = this.parseStatement();

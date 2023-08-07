@@ -33,7 +33,12 @@ import {
   BoundWhileStatement
 } from "../binder/bound-statement.js";
 import {ToSource} from "./to-source.js";
-import {BoundBinaryOperator, BoundBinaryOperatorKind, BoundUnaryOperatorKind} from "../binder/bound-operator.js";
+import {
+  BoundBinaryOperator,
+  BoundBinaryOperatorKind,
+  BoundUnaryOperator,
+  BoundUnaryOperatorKind
+} from "../binder/bound-operator.js";
 import {KeywordsByName, KeywordsBySyntax} from "../source/syntax/keywords.js";
 import {BoundScope} from "../binder/bound-scope.js";
 import {isModifierSet, Modifiers} from "../source/syntax/syntax.facts.js";
@@ -70,11 +75,14 @@ const binaryOperators = {
   [BoundBinaryOperatorKind.BitwiseAnd]: '&',
   [BoundBinaryOperatorKind.BitwiseOr]: '|',
   [BoundBinaryOperatorKind.BitwiseXor]: '^',
-
 } as const
 
 const unaryOperators = {
   [BoundUnaryOperatorKind.New]: KeywordsBySyntax[KeywordsByName.new],
+  [BoundUnaryOperatorKind.PostFixIncrease]: '++',
+  [BoundUnaryOperatorKind.PrefixIncrease]: '++',
+  [BoundUnaryOperatorKind.PostFixDecrease]: '--',
+  [BoundUnaryOperatorKind.PrefixDecrease]: '--',
 } as const
 
 export class Javascript extends ToSource {
@@ -180,7 +188,7 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceBodyStatement(node: BoundBodyStatement): string {
-    return "";
+    return this.toSourceStatement(node.statement);
   }
 
   toSourceBreakStatement(node: BoundBreakStatement): string {
@@ -207,7 +215,15 @@ export default __php__file("${escape(node.filename)}", async () => {`
   }
 
   toSourceForStatement(node: BoundForStatement): string {
-    return "";
+    const lines = [];
+    this.toSourceLabel(node.body.break, lines);
+    lines.push(this.ident+'for('+this.toSourceExpression(node.init)+';'+this.toSourceExpression(node.condition)+';'+this.toSourceExpression(node.afterthought)+')');
+
+    this.addIndent();
+    lines.push(this.toSourceStatement(node.body))
+    this.removeIdent();
+
+    return lines.join('\n')
   }
 
   toSourceIfStatement(node: BoundIfStatement): string {

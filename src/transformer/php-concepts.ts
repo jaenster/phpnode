@@ -34,7 +34,7 @@ export class PhpConcepts extends Transformer {
         kind: BoundKind.BoundBinaryExpression,
         type: operator.resultType,
         left, operator, right,
-        modifiers: 0,
+        modifiers: Modifiers.TranspilerSync,
       })
     })
   }
@@ -213,6 +213,7 @@ export class PhpConcepts extends Transformer {
           type: TypeSymbol.func,
           parameters: [],
           scope: node.scope.createChild(),
+          modifiers: 0,
           statements: [
             createBoundStatement({
               kind: BoundKind.BoundReturnStatement,

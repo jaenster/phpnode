@@ -64,7 +64,7 @@ export type BoundEchoStatement = {
 }
 export type BoundForStatement = {
   kind: BoundKind.BoundForStatement,
-  init: BoundExpressionStatement | BoundVariableStatement,
+  init: BoundExpression,
   condition: BoundExpression,
   afterthought: BoundExpression,
   body: BoundBodyStatement,
@@ -108,7 +108,6 @@ export type BoundSemiColonStatement = {
 }
 export type BoundMethodStatement = Omit<BoundFunctionStatement, 'kind'> & {
   kind: BoundKind.BoundMethodStatement
-  modifiers: Modifiers,
 }
 export type BoundFunctionStatement = {
   kind: BoundKind.BoundFunctionStatement,
@@ -117,6 +116,7 @@ export type BoundFunctionStatement = {
   type: TypeSymbol,
   name?: string,
   scope: BoundScope,
+  modifiers: Modifiers,
 }
 export type BoundClassStatement = {
   kind: BoundKind.BoundClassStatement,
