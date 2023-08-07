@@ -22,6 +22,7 @@ export class TypeSymbol extends Symbol {
   public static void = new TypeSymbol('void', true);
   public static any = new TypeSymbol('any', true);
   public static class = new TypeSymbol('class', true);
+  public static array = new TypeSymbol('array', true);
 
   // A simple internal generic the same that comes out
   public static self = new TypeSymbol('self', true);
@@ -35,6 +36,7 @@ export class TypeSymbol extends Symbol {
     TypeSymbol.error,
     TypeSymbol.void,
     TypeSymbol.any,
+    TypeSymbol.array,
   ] as ReadonlyArray<TypeSymbol>;
 
   constructor(public readonly name: string, public readonly primary: boolean = false) {

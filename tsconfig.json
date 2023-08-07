@@ -2,10 +2,11 @@
   "compilerOptions": {
     "module": "node16",
     "moduleResolution": "node16",
-    "target": "es2020",
+    "target": "es2021",
     "sourceMap": true,
     "lib": [
-      "es2021.weakref"
+      "es2021.weakref",
+      "es2015.iterable"
     ],
     "outDir": "./bin",
     "baseUrl": "."

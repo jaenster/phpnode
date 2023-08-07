@@ -12,7 +12,12 @@ import {BoundBinaryOperator, BoundBinaryOperatorKind} from "../binder/bound-oper
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BuiltinFunctions} from "../php/buildin-functions.js";
 import {BoundFile} from "../binder/bound-special.js";
-import {BoundBinaryExpression, BoundExpression, BoundNameExpression} from "../binder/bound-expression.js";
+import {
+  BoundArrayLiteralExpression,
+  BoundBinaryExpression,
+  BoundExpression,
+  BoundNameExpression
+} from "../binder/bound-expression.js";
 import {Modifiers} from "../source/syntax/syntax.facts.js";
 
 export class PhpConcepts extends Transformer {
@@ -298,4 +303,65 @@ export class PhpConcepts extends Transformer {
 
     return node;
   }
+
+  private transformArrayLiteralMember(expression: BoundExpression): BoundExpression {
+    switch (expression.kind) {
+      case BoundKind.BoundBinaryExpression:
+        // ["a" => 5] or [$foo->bar() => $foo->baz()]
+        if (expression.operator === BoundBinaryOperator.getByOperatorKind(BoundBinaryOperatorKind.FatArrow)) {
+          // convert to [["a", 5]]
+          return createBoundExpression({
+            kind: BoundKind.BoundJavascriptLiteralArrayExpression,
+            type: TypeSymbol.any,
+            expressions: [ // $foo->bar(), $foo->baz()
+              expression.left,
+              expression.right,
+            ],
+          })
+        }
+
+      // fallthrough
+      default: // [$foo->bar(),5]
+        // case BoundKind.BoundLiteralExpression: // simply 5 or "5"
+        // convert to [[undefined, 5]]
+        return createBoundExpression({
+          kind: BoundKind.BoundJavascriptLiteralArrayExpression,
+          type: TypeSymbol.any,
+          expressions: [ // undefined, expression
+            createBoundExpression({kind: BoundKind.BoundLiteralExpression, value: undefined, type: TypeSymbol.void,}),
+            expression
+          ],
+        })
+    }
+  }
+
+  transformArrayLiteralExpression(node: BoundArrayLiteralExpression): BoundExpression {
+    // Transform php array literals
+
+    const left = createBoundExpression({
+      kind: BoundKind.BoundNameExpression,
+      type: TypeSymbol.func,
+      variable: BuiltinFunctions.internalAssocArray,
+      modifiers: Modifiers.TranspilerInternal|Modifiers.TranspilerSync,
+    });
+
+
+    // Wrap them all in an array
+    const right = createBoundExpression({
+      kind: BoundKind.BoundJavascriptLiteralArrayExpression,
+      type: TypeSymbol.any,
+      expressions: node.expressions.map(el => this.transformArrayLiteralMember(el)),
+    });
+
+
+    const operator = BoundBinaryOperator.call
+
+    return createBoundExpression({
+      kind: BoundKind.BoundBinaryExpression,
+      type: operator.resultType,
+      left, operator, right,
+      modifiers: Modifiers.TranspilerSync,
+    })
+  }
+
 }

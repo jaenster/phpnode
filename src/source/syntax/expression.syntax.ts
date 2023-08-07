@@ -15,6 +15,7 @@ export type ExpressionSyntax = (
   | NameExpressionSyntax
   | ParenExpressionSyntax
   | UnaryExpressionSyntax
+  | ArrayLiteralExpressionSyntax
 )
 
 export type AssignmentExpressionSyntax = {
@@ -65,4 +66,11 @@ export type UnaryExpressionSyntax = {
   operator: SyntaxToken,
   operand: ExpressionSyntax,
   post: boolean,
+}
+
+export type ArrayLiteralExpressionSyntax = {
+  kind: SyntaxNodeKind.ArrayLiteralExpressionSyntax,
+  open: SyntaxToken,
+  close: SyntaxToken,
+  members: ExpressionSyntax,
 }

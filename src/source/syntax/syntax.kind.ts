@@ -8,9 +8,9 @@ export enum SyntaxKind {
   AmpersandAmpersandToken,
   AmpersandToken,
   ArrowToken, // ->
+  FatArrowToken, // =>
   AtToken,
-  BraceLToken,
-  BraceRToken,
+
   ColonColonToken,
   ColonToken,
   CommaToken,
@@ -29,8 +29,6 @@ export enum SyntaxKind {
   LessToken,
   MinusMinusToken,
   MinusToken,
-  ParenLToken,
-  ParenRToken,
   PercentageToken,
   PipePipeToken,
   PipeToken,
@@ -44,6 +42,14 @@ export enum SyntaxKind {
   StarToken,
   TildeToken,
   VariableToken,
+
+  // () [] {}
+  ParenOpenToken,
+  ParenCloseToken,
+  SquareOpenToken,
+  SquareCloseToken,
+  BraceOpenToken,
+  BraceCloseToken,
 
 
   // Virtual

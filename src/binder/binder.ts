@@ -45,6 +45,7 @@ import {ElseClause, FileSyntax, ParametersSyntax} from "../source/syntax/special
 import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {MapExt} from "map-ext";
 import {
+  ArrayLiteralExpressionSyntax,
   AssignmentExpressionSyntax,
   BinaryExpressionSyntax,
   CommaExpressionSyntax,
@@ -241,6 +242,8 @@ export class Binder {
         return this.bindParenExpression(expression);
       case SyntaxNodeKind.UnaryExpressionSyntax:
         return this.bindUnaryExpression(expression);
+      case SyntaxNodeKind.ArrayLiteralExpressionSyntax:
+        return this.bindArrayLiteralExpression(expression);
     }
     throw new Error(`Unexpected expression kind ${SyntaxNodeKind[expression?.kind]}`)
   }
@@ -291,7 +294,7 @@ export class Binder {
 
       // Function calls are different, as its left(right) and not left + right
       let span: TextSpan = syntax.operator.span;
-      if (syntax.operator.kind === SyntaxKind.ParenLToken) {
+      if (syntax.operator.kind === SyntaxKind.ParenOpenToken) {
         if (right.kind === BoundKind.BoundEmptyExpression) {
           span = new TextSpan(span.start, span.start + 2)
         } else {
@@ -558,5 +561,26 @@ export class Binder {
 
     this.currentBreakContinueTarget.pop();
     return createBoundStatement(placeholder);
+  }
+
+  private expressionToArrayOf(expression: BoundExpression) {
+    switch(expression.kind) {
+      case BoundKind.BoundCommaExpression:
+        return expression.expressions;
+      case BoundKind.BoundEmptyExpression:
+        return []
+      default:
+        return [expression];
+    }
+  }
+
+  private bindArrayLiteralExpression(syntax: ArrayLiteralExpressionSyntax) {
+    const expressions = this.expressionToArrayOf(this.bindExpression(syntax.members));
+
+    return createBoundExpression({
+      kind: BoundKind.BoundArrayLiteralExpression,
+      type: TypeSymbol.any, // ToDo; parse phpdocs?
+      expressions,
+    })
   }
 }

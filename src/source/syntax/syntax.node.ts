@@ -15,6 +15,7 @@ export enum SyntaxNodeKind {
   NameExpressionSyntax,
   ParenExpressionSyntax,
   UnaryExpressionSyntax,
+  ArrayLiteralExpressionSyntax,
 
   // Special
   ElseClauseSyntax,

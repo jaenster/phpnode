@@ -14,6 +14,8 @@ export enum BoundKind {
   BoundEmptyExpression,
   BoundUnaryExpression,
   BoundVariableExpression,
+  BoundArrayLiteralExpression,
+  BoundJavascriptLiteralArrayExpression,
 
   // Doesn't exist's in the syntax, this is not a (foo). Simply abusing this to wrap __php_use calls in parens
   BoundParenExpression,

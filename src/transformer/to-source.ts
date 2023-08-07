@@ -15,7 +15,7 @@ import {
   BoundBinaryExpression,
   BoundCommaExpression,
   BoundEmptyExpression,
-  BoundExpression,
+  BoundExpression, BoundJavascriptLiteralArrayExpression,
   BoundLiteralExpression,
   BoundNameExpression,
   BoundParenExpression,
@@ -78,6 +78,8 @@ export abstract class ToSource {
   abstract toSourceClassStatement(statement: BoundClassStatement): string
 
   abstract toSourceEmptyExpression(statement: BoundEmptyExpression): string
+
+  abstract toSourceJavascriptLiteralArrayExpression(statement: BoundJavascriptLiteralArrayExpression): string
 
   toSourceStatement(node: BoundStatement): string {
     switch (node.kind) {
@@ -144,6 +146,8 @@ export abstract class ToSource {
         return this.toSourceEmptyExpression(node);
       case BoundKind.BoundParenExpression:
         return this.toSourceParenExpression(node);
+      case BoundKind.BoundJavascriptLiteralArrayExpression:
+        return this.toSourceJavascriptLiteralArrayExpression(node);
     }
     throw new Error('Did not implement ' + BoundKind[node.kind]);
   }

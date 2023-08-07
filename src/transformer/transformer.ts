@@ -24,6 +24,7 @@ import {
 } from "../binder/bound-statement.js";
 import {BoundKind, BoundNode, createBoundExpression, createBoundStatement} from "../binder/bound.node.js";
 import {
+  BoundArrayLiteralExpression,
   BoundAssignmentExpression,
   BoundBinaryExpression,
   BoundCommaExpression,
@@ -41,7 +42,7 @@ import {BoundBinaryOperator} from "../binder/bound-operator.js";
 
 export abstract class Transformer {
   public currentBinaryOperator?: BoundBinaryOperator;
-  public currentFunction: BoundFunctionStatement|BoundMethodStatement;
+  public currentFunction: BoundFunctionStatement | BoundMethodStatement;
 
   transformFile(node: BoundFile): BoundFile & BoundNode {
     let changed = false
@@ -301,6 +302,8 @@ export abstract class Transformer {
         return this.transformUnaryExpression(node);
       case BoundKind.BoundParenExpression:
         return this.transformParenExpression(node)
+      case BoundKind.BoundArrayLiteralExpression:
+        return this.transformArrayLiteralExpression(node)
     }
     throw new Error('Unexpected expression ' + BoundKind[node?.kind]);
   }
@@ -506,6 +509,25 @@ export abstract class Transformer {
         name: node.name,
         type: node.type,
         scope: node.scope,
+      })
+    }
+    return node;
+  }
+
+  transformArrayLiteralExpression(node: BoundArrayLiteralExpression): BoundExpression {
+    const expressions = [];
+    let isNew = false;
+    for (const member of node.expressions) {
+      const expression = this.transformExpression(member)
+      isNew ||= expression !== member
+      expressions.push(expression)
+    }
+
+    if (isNew) {
+      return this.transformExpression({
+        kind: BoundKind.BoundArrayLiteralExpression,
+        type: node.type,
+        expressions,
       })
     }
     return node;

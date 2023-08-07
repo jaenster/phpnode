@@ -108,7 +108,7 @@ export class Parser {
         this.match(SyntaxKind.PhpOpenToken)
         return this.parseStatement();
 
-      case SyntaxKind.BraceLToken:
+      case SyntaxKind.BraceOpenToken:
         return this.parseBlockStatement()
       case SyntaxKind.IfKeyword:
         return this.parseIfStatement()
@@ -135,8 +135,8 @@ export class Parser {
   private parseBlockStatement(): BlockStatementSyntax {
     const statements = [] as StatementSyntax[];
 
-    const open = this.match(SyntaxKind.BraceLToken);
-    while (this.current().kind !== SyntaxKind.EOF && this.current().kind !== SyntaxKind.BraceRToken) {
+    const open = this.match(SyntaxKind.BraceOpenToken);
+    while (this.current().kind !== SyntaxKind.EOF && this.current().kind !== SyntaxKind.BraceCloseToken) {
 
       const start = this.current();
       const statement = this.parseStatement();
@@ -148,7 +148,7 @@ export class Parser {
       }
 
     }
-    const close = this.match(SyntaxKind.BraceRToken)
+    const close = this.match(SyntaxKind.BraceCloseToken)
 
     return createStatementNode<BlockStatementSyntax>({
       kind: SyntaxNodeKind.BlockStatementSyntax,
@@ -221,7 +221,7 @@ export class Parser {
 
   private parseForStatement() {
     const keyword = this.match(SyntaxKind.ForKeyword);
-    this.match(SyntaxKind.ParenLToken);
+    this.match(SyntaxKind.ParenOpenToken);
 
     // init and condition are full statements are they are seperated by semicolons
     const init = this.parseExpressionStatement().expression;
@@ -229,7 +229,7 @@ export class Parser {
     // Afterthought an expression, not a statement, af its not ended by a semicolon
     const afterthought = this.parseExpression();
 
-    this.match(SyntaxKind.ParenRToken);
+    this.match(SyntaxKind.ParenCloseToken);
     const body = this.parseStatement();
 
     return createStatementNode({kind: SyntaxNodeKind.ForStatementSyntax, keyword, init, condition, afterthought, body});
@@ -324,7 +324,7 @@ export class Parser {
         break;
       }
 
-      if (this.current().kind === SyntaxKind.ParenLToken) {
+      if (this.current().kind === SyntaxKind.ParenOpenToken) {
         // Function call is a different animal, as its left(right)
         // where other operators are left + right
         // use current and not next or match, as the "(" is also needed for the paren expression
@@ -343,15 +343,15 @@ export class Parser {
   }
 
   private parseParenExpression(): ExpressionSyntax & SyntaxNode {
-    const left = this.match(SyntaxKind.ParenLToken);
+    const left = this.match(SyntaxKind.ParenOpenToken);
 
     // If syntax is (), it's an empty function call, or can be seen as an empty expression
-    const expression = this.current().kind === SyntaxKind.ParenRToken
+    const expression = this.current().kind === SyntaxKind.ParenCloseToken
       ? createExpressionNode({kind: SyntaxNodeKind.EmptyExpressionSyntax, type: TypeSymbol.void})
       : this.parseExpression();
 
 
-    const right = this.match(SyntaxKind.ParenRToken);
+    const right = this.match(SyntaxKind.ParenCloseToken);
     return createExpressionNode({kind: SyntaxNodeKind.ParenExpressionSyntax, left, expression, right});
   }
 
@@ -359,7 +359,7 @@ export class Parser {
     let current = this.current();
 
     switch (current.kind) {
-      case SyntaxKind.ParenLToken:
+      case SyntaxKind.ParenOpenToken:
         return this.parseParenExpression();
       case SyntaxKind.FalseKeyword:
       case SyntaxKind.TrueKeyword:
@@ -379,6 +379,9 @@ export class Parser {
 
       case SyntaxKind.IdentifierToken:
         return createExpressionNode({kind: SyntaxNodeKind.NameExpressionSyntax, id: this.nextToken()})
+
+      case SyntaxKind.SquareOpenToken:
+        return this.parseArrayLiteral()
       default:
         const number = this.match(SyntaxKind.NumberToken);
         return createExpressionNode({kind: SyntaxNodeKind.LiteralExpressionSyntax, value: number, type: TypeSymbol.int})
@@ -444,10 +447,16 @@ export class Parser {
   parseFile(): FileSyntax {
     let current = this.current();
     const body: StatementSyntax[] = [];
+    let id = this.position;
     while (current.kind !== SyntaxKind.EOF) {
       const statement = this.parseStatement();
       body.push(statement);
       current = this.current();
+      if (id === this.position) {
+        this.diagnostics.reportParsingError(this.current().span)
+        break;
+      }
+      id = this.position;
     }
     return createSpecialNode({
       kind: SyntaxNodeKind.FileSyntax,
@@ -463,8 +472,8 @@ export class Parser {
 
   parseParameters() {
     const parameters: ParametersSyntax[] = [];
-    this.match(SyntaxKind.ParenLToken);
-    if (this.current().kind !== SyntaxKind.ParenRToken) {
+    this.match(SyntaxKind.ParenOpenToken);
+    if (this.current().kind !== SyntaxKind.ParenCloseToken) {
       do {
 
         const [, type] = this.optional(SyntaxKind.IdentifierToken);
@@ -472,13 +481,13 @@ export class Parser {
         parameters.push(createSpecialNode({kind: SyntaxNodeKind.ParameterSyntax, name, type}));
 
         // Stop on paren
-        if (this.current().kind === SyntaxKind.ParenRToken) break;
+        if (this.current().kind === SyntaxKind.ParenCloseToken) break;
         // stop on comma
         if (this.current().kind !== SyntaxKind.CommaToken) break;
         this.match(SyntaxKind.CommaToken);
       } while (true)
     }
-    this.match(SyntaxKind.ParenRToken);
+    this.match(SyntaxKind.ParenCloseToken);
     return parameters;
   }
 
@@ -600,7 +609,7 @@ export class Parser {
     const methods = [] as FunctionStatementSyntax[];
     const properties = [] as PropertyStatementSyntax[];
     do {
-      if (this.current().kind === SyntaxKind.BraceRToken) {
+      if (this.current().kind === SyntaxKind.BraceCloseToken) {
         this.nextToken();
         break;
       }
@@ -642,7 +651,7 @@ export class Parser {
       } while (this.current().kind === SyntaxKind.CommaToken);
     }
 
-    this.match(SyntaxKind.BraceLToken);
+    this.match(SyntaxKind.BraceOpenToken);
 
     const {methods, properties} = this.parseClassMembers();
     return createStatementNode({
@@ -666,7 +675,7 @@ export class Parser {
     let current: SyntaxToken;
     while ((current = this.current())
     && current.kind !== SyntaxKind.CaseKeyword
-    && current.kind !== SyntaxKind.BraceRToken
+    && current.kind !== SyntaxKind.BraceCloseToken
     && current.kind !== SyntaxKind.EOF) {
       statements.push(this.parseStatement());
     }
@@ -683,12 +692,12 @@ export class Parser {
     const keyword = this.match(SyntaxKind.SwitchKeyword);
     const expression = this.parseParenExpression();
 
-    const open = this.match(SyntaxKind.BraceLToken);
+    const open = this.match(SyntaxKind.BraceOpenToken);
     const cases: CaseStatementSyntax[] = []
-    while (this.current().kind !== SyntaxKind.BraceRToken) {
+    while (this.current().kind !== SyntaxKind.BraceCloseToken) {
       cases.push(this.parseCaseStatement())
     }
-    const close = this.match(SyntaxKind.BraceRToken);
+    const close = this.match(SyntaxKind.BraceCloseToken);
 
     return createStatementNode({
       kind: SyntaxNodeKind.SwitchStatementSyntax,
@@ -697,6 +706,35 @@ export class Parser {
       open,
       close,
       cases,
+    });
+  }
+
+  parseArrayMembers() {
+    // [$foo->bar()] and [$foo->bar() => 4] and [5] and [5=>5] are all valid array syntax's
+    // Since parsing is about syntax, simply handle these expressions
+    // Since => is a binary operator, and comma expressions,
+    // The entire content of array's can be parsed with a simple parse expression in the parser
+
+    // Special case, empty array syntax
+    if (this.current().kind === SyntaxKind.SquareCloseToken) {
+      return createExpressionNode({
+        kind: SyntaxNodeKind.EmptyExpressionSyntax,
+        type: TypeSymbol.void,
+      })
+    }
+
+    return this.parseExpression();
+  }
+
+  parseArrayLiteral() {
+    const open = this.match(SyntaxKind.SquareOpenToken);
+
+
+    return createExpressionNode({
+      kind: SyntaxNodeKind.ArrayLiteralExpressionSyntax,
+      open,
+      members: this.parseArrayMembers(),
+      close: this.match(SyntaxKind.SquareCloseToken),
     });
   }
 }

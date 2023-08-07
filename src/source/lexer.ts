@@ -163,19 +163,27 @@ export class Lexer {
         break;
       case '(':
         this.position++
-        this.currentKind = SyntaxKind.ParenLToken;
+        this.currentKind = SyntaxKind.ParenOpenToken;
         break;
       case ')':
         this.position++
-        this.currentKind = SyntaxKind.ParenRToken;
+        this.currentKind = SyntaxKind.ParenCloseToken;
         break;
       case '{':
         this.position++
-        this.currentKind = SyntaxKind.BraceLToken;
+        this.currentKind = SyntaxKind.BraceOpenToken;
         break;
       case '}':
         this.position++
-        this.currentKind = SyntaxKind.BraceRToken;
+        this.currentKind = SyntaxKind.BraceCloseToken;
+        break;
+      case '[':
+        this.position++
+        this.currentKind = SyntaxKind.SquareOpenToken;
+        break;
+      case ']':
+        this.position++
+        this.currentKind = SyntaxKind.SquareCloseToken;
         break;
       case ',':
         this.position++
@@ -238,6 +246,9 @@ export class Lexer {
           } else {
             this.currentKind = SyntaxKind.EqualEqualToken;
           }
+        } else if (this.current() === '>') {
+          this.position++;
+          this.currentKind = SyntaxKind.FatArrowToken;
         } else {
           this.currentKind = SyntaxKind.EqualToken;
         }

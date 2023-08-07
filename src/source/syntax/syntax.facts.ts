@@ -2,6 +2,12 @@ import {SyntaxKind} from "./syntax.kind.js";
 
 const enum PrecedenceKind {
   None,
+
+  // In theory here is a Comma operator, but its so low and special it's handled before other operators
+
+  // for array access [$foo->bar() => 5]
+  FatArrow,
+
   LogicalOr,
   LogicalAnd,
   At,
@@ -20,6 +26,8 @@ const enum PrecedenceKind {
   Postfix,
   New,
   FunctionCallMemberAccess,
+
+  // In theory here is a Group operator, but it's not handled as operator internally
 }
 
 export function getUnaryOperatorPrecedence(kind: SyntaxKind, next: SyntaxKind) {
@@ -90,7 +98,7 @@ export function getBinaryOperatorPrecedence(kind: SyntaxKind) {
     case SyntaxKind.PercentageToken:
       return PrecedenceKind.MultiplicationDivision;
 
-    case SyntaxKind.ParenLToken:
+    case SyntaxKind.ParenOpenToken:
       return PrecedenceKind.FunctionCallMemberAccess;
 
     // It's not really considered an operator in PHP, but, to parse it, treat it as one
@@ -98,6 +106,8 @@ export function getBinaryOperatorPrecedence(kind: SyntaxKind) {
     case SyntaxKind.ColonColonToken:
       return PrecedenceKind.FunctionCallMemberAccess;
 
+    case SyntaxKind.FatArrowToken:
+      return PrecedenceKind.FatArrow;
     default:
       return PrecedenceKind.None;
   }

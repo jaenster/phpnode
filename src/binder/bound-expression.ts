@@ -16,6 +16,8 @@ export type BoundExpression = (
   | BoundUnaryExpression
   | BoundVariableExpression
   | BoundParenExpression
+  | BoundArrayLiteralExpression
+  | BoundJavascriptLiteralArrayExpression
 
   // Some statements are valid expressions
   | BoundClassStatement
@@ -81,4 +83,14 @@ export type BoundCallExpression = {
   kind: BoundKind.BoundVariableExpression,
   type: TypeSymbol,
   variable: VariableSymbol,
+}
+export type BoundArrayLiteralExpression = {
+  kind: BoundKind.BoundArrayLiteralExpression,
+  type: TypeSymbol,
+  expressions: BoundExpression[],
+}
+export type BoundJavascriptLiteralArrayExpression = {
+  kind: BoundKind.BoundJavascriptLiteralArrayExpression,
+  type: TypeSymbol,
+  expressions: BoundExpression[],
 }

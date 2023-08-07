@@ -12,10 +12,13 @@ export class BuiltinFunctions {
   public static readonly instances = new Map<string, BuildInSymbol>();
 
   static internalPrint: BuildInSymbol;
+  static internalAssocArray: BuildInSymbol;
   static internalNamespace: BuildInSymbol;
   static internalUse: BuildInSymbol;
 
   static {
+    this.internalAssocArray = new BuildInSymbol('__php__array', TypeSymbol.func, [createParam(TypeSymbol.any, 'data'),], TypeSymbol.any);
+
     this.internalPrint = new BuildInSymbol('__php__print', TypeSymbol.func, [createParam(TypeSymbol.string, 'data'),], TypeSymbol.void)
     this.instances.set('__php__print', this.internalPrint);
 

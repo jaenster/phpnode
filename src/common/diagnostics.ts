@@ -11,6 +11,9 @@ export class Diagnostics {
     this.items.push({span, msg});
   }
 
+  reportParsingError(span: TextSpan){
+    this.report(span, 'Unable to parse');
+  }
 
   reportUnterminatedString(span: TextSpan) {
     this.report(span, 'Unterminated string');

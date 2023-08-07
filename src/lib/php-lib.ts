@@ -1,3 +1,5 @@
+import {PhpArray} from "./php-array.js";
+
 export async function __php_invoke__spl(namespace: string[]): Promise<boolean> {
   throw new Error('ToDo; implement')
 }
@@ -54,7 +56,11 @@ export function __php__print(string: string) {
   __php__current__request.out.push(string);
 }
 
-export async function __php__file(path: string, callback: () => Promise<void>) {
+export function __php__file(path: string, callback: () => Promise<void>) {
   __php__file[path] = callback;
   return callback;
+}
+
+export function __php__array(v: any) {
+  return PhpArray.create(v);
 }

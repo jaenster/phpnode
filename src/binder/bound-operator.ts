@@ -28,6 +28,7 @@ export enum BoundBinaryOperatorKind {
   FunctionCall,
   MemberAccess,
   StaticMemberAccess,
+  FatArrow
 }
 
 function isType(type1: TypeSymbol, type2: TypeSymbol) {
@@ -51,8 +52,8 @@ export class BoundBinaryOperator {
     this.name = BoundBinaryOperatorKind[kind];
   }
 
-  static call = new BoundBinaryOperator(SyntaxKind.ParenLToken, BoundBinaryOperatorKind.FunctionCall, TypeSymbol.func);
-  static memberCall = new BoundBinaryOperator(SyntaxKind.ParenLToken, BoundBinaryOperatorKind.MethodCall, TypeSymbol.any);
+  static call = new BoundBinaryOperator(SyntaxKind.ParenOpenToken, BoundBinaryOperatorKind.FunctionCall, TypeSymbol.func);
+  static memberCall = new BoundBinaryOperator(SyntaxKind.ParenOpenToken, BoundBinaryOperatorKind.MethodCall, TypeSymbol.any);
   static addition = new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.any);
 
   private static operator = [
@@ -92,6 +93,7 @@ export class BoundBinaryOperator {
     new BoundBinaryOperator(SyntaxKind.DotToken, BoundBinaryOperatorKind.Concatenation, TypeSymbol.any, TypeSymbol.any, TypeSymbol.string),
 
     new BoundBinaryOperator(SyntaxKind.ArrowToken, BoundBinaryOperatorKind.MemberAccess, TypeSymbol.any),
+    new BoundBinaryOperator(SyntaxKind.FatArrowToken, BoundBinaryOperatorKind.FatArrow, TypeSymbol.any),
     new BoundBinaryOperator(SyntaxKind.ColonColonToken, BoundBinaryOperatorKind.StaticMemberAccess, TypeSymbol.any),
     this.memberCall,
     this.call,

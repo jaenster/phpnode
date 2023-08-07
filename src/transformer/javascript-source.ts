@@ -3,7 +3,7 @@ import {
   BoundAssignmentExpression,
   BoundBinaryExpression,
   BoundCommaExpression,
-  BoundEmptyExpression,
+  BoundEmptyExpression, BoundJavascriptLiteralArrayExpression,
   BoundLiteralExpression,
   BoundNameExpression,
   BoundParenExpression,
@@ -374,5 +374,9 @@ export default __php__file("${escape(node.filename)}", async () => {`
     this.removeIdent();
 
     return lines.join('\n');
+  }
+
+  toSourceJavascriptLiteralArrayExpression(statement: BoundJavascriptLiteralArrayExpression): string {
+    return "["+statement.expressions.map(el => this.toSourceExpression(el)).join(', ')+']';
   }
 }
