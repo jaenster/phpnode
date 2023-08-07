@@ -217,7 +217,9 @@ export default __php__file("${escape(node.filename)}", async () => {`
   toSourceForStatement(node: BoundForStatement): string {
     const lines = [];
     this.toSourceLabel(node.body.break, lines);
-    lines.push(this.ident+'for('+this.toSourceExpression(node.init)+';'+this.toSourceExpression(node.condition)+';'+this.toSourceExpression(node.afterthought)+')');
+    // If label is given, it needs to add ident on the first line
+    const firstIdent = (lines.length ? this.ident : '');
+    lines.push(firstIdent+ 'for('+this.toSourceExpression(node.init)+';'+this.toSourceExpression(node.condition)+';'+this.toSourceExpression(node.afterthought)+')');
 
     this.addIndent();
     lines.push(this.toSourceStatement(node.body))
@@ -228,7 +230,7 @@ export default __php__file("${escape(node.filename)}", async () => {`
 
   toSourceIfStatement(node: BoundIfStatement): string {
     const lines = [];
-    lines.push(this.ident+'if ('+this.toSourceExpression(node.condition)+')');
+    lines.push('if ('+this.toSourceExpression(node.condition)+')');
     lines.push(this.toSourceStatement(node.body));
 
     if (node.elseBody) {
