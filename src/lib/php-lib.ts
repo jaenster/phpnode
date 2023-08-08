@@ -1,4 +1,6 @@
 import {PhpArray} from "./php-array.js";
+import {PhpClassName, PhpFields, PhpGetField, PhpVarDump} from "./symbols.js";
+import {PhpClass} from "./php-class.js";
 
 export async function __php_invoke__spl(namespace: string[]): Promise<boolean> {
   throw new Error('ToDo; implement')
@@ -63,4 +65,45 @@ export function __php__file(path: string, callback: () => Promise<void>) {
 
 export function __php__array(v: any) {
   return PhpArray.create(v);
+}
+
+class VarDumper {
+  ident = '';
+
+  run(data) {
+    const lines = [];
+    // Ugly mess but its a debug function, whatever
+    for (const value of data) {
+      if (typeof value === 'boolean') {
+        lines.push(this.ident + 'bool(' + value + ')');
+      } else if ((value ?? null) === null) {
+        lines.push(this.ident + 'NULL');
+      } else if (value instanceof PhpClass) {
+
+        lines.push(this.ident + value[PhpClassName] + ' (' + value[PhpFields].length + ') {')
+        this.ident += '  '
+        const fields = value[PhpFields];
+        for (const field of fields) {
+          if (typeof field === 'number') {
+            lines.push(this.ident + '[' + (field | 0) + '] =>')
+          } else {
+            lines.push(this.ident + '["' + escape(field) + '"] =>')
+          }
+          lines.push(this.run([value[PhpGetField](field)]));
+        }
+        this.ident = this.ident.substring(0, -2);
+        lines.push(this.ident + '}');
+      } else if (typeof value === 'number') {
+        const type = (value | 0) === value ? 'int' : 'float';
+        lines.push(this.ident + type + '(' + value + ')');
+      } else if (typeof value === 'string') {
+        lines.push(this.ident + 'string(' + value.length + ') ' + JSON.stringify(value));
+      }
+    }
+    return lines.join('\n');
+  }
+}
+
+export function var_dump(...data: any[]) {
+  __php__print(new VarDumper().run(data));
 }

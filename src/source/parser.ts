@@ -96,7 +96,7 @@ export class Parser {
       case SyntaxKind.UnsetKeyword:
         break;
       case SyntaxKind.UseKeyword:
-        break;
+        return this.parseUseStatement();
       case SyntaxKind.VarKeyword:
         break;
       case SyntaxKind.YieldKeyword:
@@ -736,5 +736,9 @@ export class Parser {
       members: this.parseArrayMembers(),
       close: this.match(SyntaxKind.SquareCloseToken),
     });
+  }
+
+  parseUseStatement() {
+    return undefined;
   }
 }

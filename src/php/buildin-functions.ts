@@ -15,9 +15,12 @@ export class BuiltinFunctions {
   static internalAssocArray: BuildInSymbol;
   static internalNamespace: BuildInSymbol;
   static internalUse: BuildInSymbol;
+  static internalVarDump: BuildInSymbol;
+
 
   static {
     this.internalAssocArray = new BuildInSymbol('__php__array', TypeSymbol.func, [createParam(TypeSymbol.any, 'data'),], TypeSymbol.any);
+    this.instances.set('__php__array', this.internalAssocArray);
 
     this.internalPrint = new BuildInSymbol('__php__print', TypeSymbol.func, [createParam(TypeSymbol.string, 'data'),], TypeSymbol.void)
     this.instances.set('__php__print', this.internalPrint);
@@ -36,6 +39,9 @@ export class BuiltinFunctions {
       createParam(TypeSymbol.func, 'cb')
     ], TypeSymbol.void);
     this.instances.set('__php__use', this.internalUse);
+
+    this.internalVarDump = new BuildInSymbol('var_dump', TypeSymbol.func, [createParam(TypeSymbol.any, 'data')], TypeSymbol.void);
+    this.instances.set('var_dump', this.internalVarDump);
   }
 
 }

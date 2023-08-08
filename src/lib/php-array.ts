@@ -1,11 +1,14 @@
-export class PhpArray<T = any, K extends string | number = string | number> {
+import {PhpClassName, PhpFields, PhpGetField, PhpVarDump} from "./symbols.js";
+import {PhpClass} from "./php-class.js";
+
+export class PhpArray<T = any, K extends string | number = string | number> extends PhpClass {
 
   public maxInt: number = 0;
   public mapOrder = new Map<K, number>;
   public internalValues: [K, T][] = [];
 
   internalSet(key: K, v: T) {
-    this.mapOrder.set(key, this.internalValues.push([key, v]));
+    this.mapOrder.set(key, this.internalValues.push([key, v])-1);
   }
 
   add(v: T) {
@@ -33,7 +36,21 @@ export class PhpArray<T = any, K extends string | number = string | number> {
 
   toString() {
     // ToDo; php warning?
-    return 'Array';
+    return 'array';
+  }
+
+  get [PhpClassName]() {
+    return 'array';
+  }
+
+  get [PhpFields]() {
+    return [...this.mapOrder.keys()];
+  }
+
+  [PhpGetField](v: K) {
+    const index = this.mapOrder.get(v);
+    if (typeof index === 'undefined') return undefined;
+    return this.internalValues[index][1];
   }
 
   * [Symbol.iterator](): IterableIterator<T> {

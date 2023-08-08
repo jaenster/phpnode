@@ -12,7 +12,7 @@ import {
 } from "./bound-statement.js";
 import {BoundScope} from "./bound-scope.js";
 import {Diagnostics} from "../common/diagnostics.js";
-import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
+import {BuildInSymbol, TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {
   BlockStatementSyntax,
   BreakStatementSyntax,
@@ -62,6 +62,7 @@ import {TextSpan} from "../common/text-span.js";
 import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 import {SyntaxToken} from "../source/lexer.js";
 import {ModifierMapping, Modifiers} from "../source/syntax/syntax.facts.js";
+import {BuiltinFunctions} from "../php/buildin-functions.js";
 
 export class Binder {
   private currentBreakContinueTarget: Array<{ break: BoundLabel, continue: BoundLabel }> = [];
@@ -77,6 +78,10 @@ export class Binder {
     const scope = new BoundScope();
     for (const type of TypeSymbol.beginTypes) {
       scope.tryDeclareType(type);
+    }
+
+    for(const [name, fn] of BuiltinFunctions.instances) {
+      scope.tryDeclare(fn);
     }
 
     // Add buildin methods to parent scope

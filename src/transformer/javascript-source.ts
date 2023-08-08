@@ -128,7 +128,9 @@ export class Javascript extends ToSource {
 
     const names = [];
     for (const name of scope.variables.keys()) {
-      names.push(name);
+      if (name.startsWith('$')) {
+        names.push(name);
+      }
     }
 
     return names.length ? this.ident + 'let ' + names.join(', ') : '';

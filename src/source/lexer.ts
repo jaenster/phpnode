@@ -311,8 +311,9 @@ export class Lexer {
           this.currentKind = SyntaxKind.ColonToken;
         }
         break;
+      case "'":
       case '"':
-        this.readString();
+        this.readString(this.current());
         break;
       case '@':
         this.currentKind = SyntaxKind.AtToken;
@@ -370,10 +371,11 @@ export class Lexer {
     this.currentKind = SyntaxKind.NumberToken
   }
 
-  private readString() {
+  private readString(start: string) {
     let literal = [];
     let done = false;
     this.position++;
+    // let other = start === '"' ? "'" : '"';
     while (!done) {
       let current = this.current();
       switch (current) {
@@ -384,13 +386,14 @@ export class Lexer {
           this.position++;
           done = true;
           break;
-        case '\"':
+        case start:
           this.position++;
           done = true;
           break;
         case '\\':
           switch (this.peek(1)) {
             case '"':
+            case "'":
             case '\\':
               // Skip this \ star, and take the literal of here
               this.position++;
@@ -430,7 +433,7 @@ export class Lexer {
 
   private readValidIdentifier() {
     let first = 0;
-    while (isLetter(this.current()) || (first++ === 0 && isDigit(this.current())) || this.current() === '_') {
+    while (this.current() === '\\' || isLetter(this.current()) || (first++ === 0 && isDigit(this.current())) || this.current() === '_') {
       this.next();
     }
   }

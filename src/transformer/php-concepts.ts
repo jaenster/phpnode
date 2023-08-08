@@ -9,7 +9,7 @@ import {
 } from "../binder/bound-statement.js";
 import {BoundKind, BoundNode, createBoundExpression, createBoundStatement} from "../binder/bound.node.js";
 import {BoundBinaryOperator, BoundBinaryOperatorKind} from "../binder/bound-operator.js";
-import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
+import {BuildInSymbol, TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BuiltinFunctions} from "../php/buildin-functions.js";
 import {BoundFile} from "../binder/bound-special.js";
 import {
@@ -107,6 +107,10 @@ export class PhpConcepts extends Transformer {
   transformNameExpression(node: BoundNameExpression): BoundExpression {
     // Ignore internal name expressions to avoid recursion
     if ((node.modifiers & Modifiers.TranspilerInternal) === Modifiers.TranspilerInternal) {
+      return super.transformNameExpression(node);
+    }
+
+    if (node.variable instanceof BuildInSymbol) {
       return super.transformNameExpression(node);
     }
 
