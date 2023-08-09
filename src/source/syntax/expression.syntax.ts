@@ -3,7 +3,6 @@ import type {TypeSymbol} from "../../symbols/symbols.js";
 import type {SyntaxNodeKind} from "./syntax.node.js";
 import {SyntaxNode} from "./syntax.node.js";
 import {SyntaxToken} from "../lexer.js";
-import {Modifiers} from "./syntax.facts.js";
 
 
 export type ExpressionSyntax = (
@@ -35,6 +34,7 @@ export type BinaryExpressionSyntax = {
 export type CommaExpressionSyntax = {
   kind: SyntaxNodeKind.CommaExpressionSyntax,
   expressions: ExpressionSyntax[],
+  commas: SyntaxToken[]
 }
 
 export type EmptyExpressionSyntax = {
@@ -44,21 +44,21 @@ export type EmptyExpressionSyntax = {
 
 export type LiteralExpressionSyntax = {
   kind: SyntaxNodeKind.LiteralExpressionSyntax,
-  keyword?: SyntaxToken,
   value: any,
+  token: SyntaxToken,
   type: TypeSymbol,
 }
 
 export type NameExpressionSyntax = {
   kind: SyntaxNodeKind.NameExpressionSyntax,
-  id: SyntaxToken,
+  identifier: SyntaxToken,
 }
 
 export type ParenExpressionSyntax = {
   kind: SyntaxNodeKind.ParenExpressionSyntax,
-  left: SyntaxToken,
+  open: SyntaxToken,
   expression: ExpressionSyntax,
-  right: SyntaxToken,
+  close: SyntaxToken,
 }
 
 export type UnaryExpressionSyntax = {

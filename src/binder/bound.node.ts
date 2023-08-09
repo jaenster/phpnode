@@ -2,6 +2,8 @@ import type {BoundExpression} from "./bound-expression.js";
 import type {BoundFile, BoundSpecial} from "./bound-special.js";
 import {BoundBinaryOperatorKind, BoundUnaryOperatorKind} from "./bound-operator.js";
 import type {BoundStatement} from "./bound-statement.js";
+import {TextSpan} from "../common/text-span.js";
+import {SyntaxToken} from "../source/lexer.js";
 
 export enum BoundKind {
   // Expressions
@@ -51,6 +53,9 @@ export enum BoundKind {
 }
 
 export type BoundNodeTypes = (BoundExpression | BoundStatement | BoundSpecial) & { parent?: BoundNodeTypes };
+export type BoundSpanBase = {
+  tokens: SyntaxToken[],
+}
 
 export function createPlaceholder<T extends BoundStatement>(p: T): T {
   const placeholder = new BoundNode() as BoundNode & T;
@@ -96,7 +101,6 @@ export function wrapParent(parent: { parent: BoundNodeTypes } & BoundNodeTypes) 
     case BoundKind.BoundJumpStatement:
     case BoundKind.BoundPropertyStatement:
     case BoundKind.BoundLabelStatement:
-    case BoundKind.BoundVariableStatement:
     case BoundKind.BoundParameter:
     case BoundKind.BoundElse:
     case BoundKind.BoundLabel:
@@ -197,6 +201,7 @@ export class BoundNode {
     indent += isLast ? "   " : "│  ";
     for (const field of this.fields) {
       if (field === 'kind') continue;
+      if (field === 'tokens') continue;
       const node = this[field] as unknown as BoundNode & BoundNodeTypes;
       if (node instanceof BoundNode) {
         node.prettyPrint(indent, last === node);
@@ -281,7 +286,6 @@ export class BoundNode {
         case BoundKind.BoundJumpConditionalStatement:
         case BoundKind.BoundJumpStatement:
         case BoundKind.BoundLabelStatement:
-        case BoundKind.BoundVariableStatement:
         case BoundKind.BoundWhileStatement:
           yield statement
           break;

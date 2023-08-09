@@ -3,7 +3,7 @@
     "module": "node16",
     "moduleResolution": "node16",
     "target": "es2021",
-    "sourceMap": true,
+    "inlineSourceMap": true,
     "lib": [
       "es2021.weakref",
       "es2015.iterable"

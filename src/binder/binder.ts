@@ -8,11 +8,10 @@ import {
   BoundSemiColonStatement,
   BoundStatement,
   BoundSwitchStatement,
-  BoundVariableStatement
 } from "./bound-statement.js";
 import {BoundScope} from "./bound-scope.js";
 import {Diagnostics} from "../common/diagnostics.js";
-import {BuildInSymbol, TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
+import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {
   BlockStatementSyntax,
   BreakStatementSyntax,
@@ -29,7 +28,6 @@ import {
   SemiColonSyntax,
   StatementSyntax,
   SwitchStatementSyntax,
-  VariableStatementSyntax,
   WhileStatementSyntax
 } from "../source/syntax/statement.syntax.js";
 import {SyntaxNodeKind} from "../source/syntax/syntax.node.js";
@@ -41,7 +39,7 @@ import {
   createBoundStatement,
   createPlaceholder
 } from "./bound.node.js";
-import {ElseClause, FileSyntax, ParametersSyntax} from "../source/syntax/special.syntax.js";
+import {ElseClause, FileSyntax, ParametersSyntax, SpecialSyntax} from "../source/syntax/special.syntax.js";
 import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {MapExt} from "map-ext";
 import {
@@ -80,7 +78,7 @@ export class Binder {
       scope.tryDeclareType(type);
     }
 
-    for(const [name, fn] of BuiltinFunctions.instances) {
+    for (const [name, fn] of BuiltinFunctions.instances) {
       scope.tryDeclare(fn);
     }
 
@@ -109,8 +107,6 @@ export class Binder {
         return this.bindForStatementSyntax(syntax);
       case SyntaxNodeKind.IfStatementSyntax:
         return this.bindIfStatementSyntax(syntax);
-      case SyntaxNodeKind.VariableStatementSyntax:
-        return this.bindVariableStatementSyntax(syntax);
       case SyntaxNodeKind.WhileStatementSyntax:
         return this.bindWhileStatementSyntax(syntax);
       case SyntaxNodeKind.SemiColonSyntax:
@@ -125,9 +121,78 @@ export class Binder {
     throw new Error(`Unexpected syntax ${SyntaxNodeKind[syntax?.kind]}`)
   }
 
+  private getTextSpan(syntax: StatementSyntax | ExpressionSyntax | SpecialSyntax): SyntaxToken[] {
+    if (syntax === undefined) return [];
+    switch (syntax.kind) {
+      case SyntaxNodeKind.AssignmentExpressionSyntax:
+        return [syntax.identifier, syntax.operator, ...this.getTextSpan(syntax.expression)];
+      case SyntaxNodeKind.BinaryExpressionSyntax:
+        return [...this.getTextSpan(syntax.left), syntax.operator, ...this.getTextSpan(syntax.right)];
+      case SyntaxNodeKind.CommaExpressionSyntax:
+        return syntax.expressions.map((el, idx, self) => [
+          ...this.getTextSpan(el), self.length - 1 === idx ? undefined : syntax.commas[idx]
+        ].filter(Boolean)).flat();
+      case SyntaxNodeKind.EmptyExpressionSyntax:
+        return []
+      case SyntaxNodeKind.LiteralExpressionSyntax:
+        return [syntax.token]
+      case SyntaxNodeKind.NameExpressionSyntax:
+        return [syntax.identifier];
+      case SyntaxNodeKind.ParenExpressionSyntax:
+        return [syntax.open, ...this.getTextSpan(syntax.expression), syntax.close];
+      case SyntaxNodeKind.UnaryExpressionSyntax:
+        return (syntax.post ? [syntax.operator, ...this.getTextSpan(syntax.operand)] : [...this.getTextSpan(syntax.operand), syntax.operator])
+          .filter(Boolean);
+      case SyntaxNodeKind.ArrayLiteralExpressionSyntax:
+        return [syntax.open, ...this.getTextSpan(syntax.members), syntax.close];
+      case SyntaxNodeKind.FileSyntax:
+        return [];
+      case SyntaxNodeKind.ParameterSyntax:
+        return [syntax.name, syntax.type].filter(Boolean);
+      case SyntaxNodeKind.TypeClause:
+        return [syntax.identifier].filter(Boolean);
+      case SyntaxNodeKind.ElseClauseSyntax:
+        return [syntax.keyword];
+
+      case SyntaxNodeKind.SemiColonSyntax:
+        return [syntax.semicolon];
+      case SyntaxNodeKind.BlockStatementSyntax:
+        return [syntax.open];
+      case SyntaxNodeKind.ContinueStatementSyntax:
+      case SyntaxNodeKind.BreakStatementSyntax:
+        return [syntax.keyword, syntax.depth, syntax.semicolon].filter(Boolean);
+      case SyntaxNodeKind.ExpressionStatementSyntax:
+        return [...this.getTextSpan(syntax.expression), syntax.semicolon];
+      case SyntaxNodeKind.ForStatementSyntax:
+        return [syntax.keyword, ...this.getTextSpan(syntax.init), ...this.getTextSpan(syntax.condition), ...this.getTextSpan(syntax.afterthought)];
+      case SyntaxNodeKind.IfStatementSyntax:
+        return [syntax.keyword, ...this.getTextSpan(syntax.condition)];
+      case SyntaxNodeKind.FunctionStatementSyntax:
+        return [syntax.keyword, syntax.identifier, ...syntax.parameters.map(el => this.getTextSpan(el)).flat(), syntax.open];
+      case SyntaxNodeKind.ClassStatementSyntax:
+        return [syntax.keyword, syntax.identifier, syntax.extendKeyword, syntax.extend, syntax.implementsKeyword, ...syntax.implements].filter(Boolean);
+      case SyntaxNodeKind.PropertyStatementSyntax:
+        return [...syntax.modifiers, syntax.type, syntax.identifier, ...this.getTextSpan(syntax.init)];
+      case SyntaxNodeKind.ReturnStatementSyntax:
+        return [syntax.keyword, ...this.getTextSpan(syntax.expression)];
+      case SyntaxNodeKind.WhileStatementSyntax:
+        return [syntax.keyword, ...this.getTextSpan(syntax.condition)];
+      case SyntaxNodeKind.PrintStatementSyntax:
+      case SyntaxNodeKind.EchoStatementSyntax:
+        return [syntax.keyword, ...this.getTextSpan(syntax.expression)];
+      case SyntaxNodeKind.CaseStatementSyntax:
+        return [syntax.keyword, ...this.getTextSpan(syntax.expression), syntax.colon];
+      case SyntaxNodeKind.SwitchStatementSyntax:
+        return [syntax.keyword, ...this.getTextSpan(syntax.expression)];
+    }
+    throw new Error('not implemented '+SyntaxNodeKind[(syntax as any).kind]);
+  }
+
   private bindExpressionStatement(syntax: ExpressionStatementSyntax): BoundExpressionStatement {
     const expression = this.bindExpression(syntax.expression);
-    return createBoundStatement({kind: BoundKind.BoundExpressionStatement, expression})
+    const tokens = this.getTextSpan(syntax);
+
+    return createBoundStatement({kind: BoundKind.BoundExpressionStatement, expression, tokens});
   }
 
   private bindEchoStatementSyntax(syntax: EchoStatementSyntax) {
@@ -135,12 +200,14 @@ export class Binder {
     return createBoundStatement({
       kind: BoundKind.BoundEchoStatement,
       expression,
+      tokens: this.getTextSpan(syntax),
     })
   }
 
   private bindBlockStatement(syntax: BlockStatementSyntax) {
     const statements = syntax.statements.map(el => this.bindStatement(el));
-    return createBoundStatement({kind: BoundKind.BoundBlockStatement, statements})
+    const tokens = this.getTextSpan(syntax);
+    return createBoundStatement({kind: BoundKind.BoundBlockStatement, statements, tokens})
   }
 
   private bindForStatementSyntax(syntax: ForStatementSyntax) {
@@ -148,8 +215,9 @@ export class Binder {
     const condition = this.bindExpression(syntax.condition);
     const afterthought = this.bindExpression(syntax.afterthought);
     const body = this.bindBodyStatement(syntax.body);
+    const tokens = this.getTextSpan(syntax);
 
-    return createBoundStatement({kind: BoundKind.BoundForStatement, init, condition, afterthought, body})
+    return createBoundStatement({kind: BoundKind.BoundForStatement, init, condition, afterthought, body, tokens})
   }
 
 
@@ -176,32 +244,22 @@ export class Binder {
     const condition = this.bindExpression(syntax.condition);
     const body = this.bindStatement(syntax.body)
     const elseBody = this.bindElseClause(syntax.elseClause)
+    const tokens = this.getTextSpan(syntax);
 
-    return createBoundStatement({kind: BoundKind.BoundIfStatement, body, condition, elseBody})
-  }
-
-  private bindVariableStatementSyntax(syntax: VariableStatementSyntax): BoundVariableStatement {
-    const name = syntax.identifier.text;
-    const isReadonly = syntax.keyword.kind === SyntaxKind.ConstKeyword;
-    const init = this.bindExpression(syntax.init);
-
-    const variable = new VariableSymbol(name, isReadonly, init.type)
-    if (!this.scope.tryDeclare(variable)) {
-      this.diagnostics.reportCannotRedeclare(syntax.identifier.span, syntax.identifier.text);
-    }
-
-    return createBoundStatement({kind: BoundKind.BoundVariableStatement, variable, init});
+    return createBoundStatement({kind: BoundKind.BoundIfStatement, body, condition, elseBody, tokens})
   }
 
   private bindWhileStatementSyntax(syntax: WhileStatementSyntax) {
     const condition = this.bindExpression(syntax.condition);
     const body = this.bindBodyStatement(syntax.body);
+    const tokens = this.getTextSpan(syntax);
 
-    return createBoundStatement({kind: BoundKind.BoundWhileStatement, condition, body});
+    return createBoundStatement({kind: BoundKind.BoundWhileStatement, condition, body, tokens});
   }
 
   private bindSemiColonSyntax(syntax: SemiColonSyntax) {
-    return createBoundStatement({kind: BoundKind.BoundSemiColonStatement})
+    const tokens = this.getTextSpan(syntax);
+    return createBoundStatement({kind: BoundKind.BoundSemiColonStatement, tokens})
   }
 
   private labelIds = new MapExt<string, number>(() => 0);
@@ -213,12 +271,14 @@ export class Binder {
   }
 
   private bindBodyStatement(syntax: StatementSyntax): BoundBodyStatement {
+    const tokens = this.getTextSpan(syntax);
     // Because a body can contain a break or continue, already create the incomplete statement
     const placeholder = createPlaceholder<BoundBodyStatement>({
       kind: BoundKind.BoundBodyStatement,
       break: this.createLabel('break'),
       continue: this.createLabel('continue'),
       statement: undefined,
+      tokens,
     })
 
     this.currentBreakContinueTarget.push(placeholder);
@@ -256,7 +316,8 @@ export class Binder {
   bindCommaExpression(syntax: CommaExpressionSyntax) {
     const expressions = syntax.expressions.map(e => this.bindExpression(e));
     const last = expressions[expressions.length - 1];
-    return createBoundExpression({kind: BoundKind.BoundCommaExpression, expressions, type: last.type});
+    const tokens = this.getTextSpan(syntax);
+    return createBoundExpression({kind: BoundKind.BoundCommaExpression, expressions, type: last.type, tokens});
   }
 
   bindAssignmentExpression(syntax: AssignmentExpressionSyntax): BoundExpression {
@@ -283,15 +344,17 @@ export class Binder {
       return expression;
     }
 
-    return createBoundExpression({kind: BoundKind.BoundAssignmentExpression, expression, variable, type})
+    const tokens = this.getTextSpan(syntax);
+    return createBoundExpression({kind: BoundKind.BoundAssignmentExpression, expression, variable, type, tokens})
   }
 
   bindBinaryExpression(syntax: BinaryExpressionSyntax) {
     const left = this.bindExpression(syntax.left);
     const right = this.bindExpression(syntax.right);
+    const tokens = this.getTextSpan(syntax);
 
     if (left.type === TypeSymbol.error || right.type === TypeSymbol.error) {
-      return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error});
+      return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error, tokens});
     }
 
     const operator = BoundBinaryOperator.bind(syntax.operator.kind, left, right);
@@ -309,7 +372,7 @@ export class Binder {
       }
 
       this.diagnostics.reportUndefinedBinaryOperator(span, syntax.operator.text, left.type, right.type);
-      return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error});
+      return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error, tokens});
     }
 
     return createBoundExpression({
@@ -319,14 +382,16 @@ export class Binder {
       right,
       type: operator.resultType,
       modifiers: 0,
+      tokens,
     });
   }
 
   bindNameExpression(syntax: NameExpressionSyntax) {
-    const name = syntax.id.text;
+    const tokens = this.getTextSpan(syntax);
+    const name = syntax.identifier.text;
     if (name === null) {
       // Invalid node
-      return createBoundExpression({kind: BoundKind.BoundLiteralExpression, type: TypeSymbol.error, value: 0})
+      return createBoundExpression({kind: BoundKind.BoundLiteralExpression, type: TypeSymbol.error, value: 0, tokens})
     }
 
     let [has, variable] = this.scope.tryLookup(name);
@@ -336,19 +401,27 @@ export class Binder {
       variable = new VariableSymbol(name, false, TypeSymbol.any);
     }
 
-    if (syntax.id.kind === SyntaxKind.VariableToken) {
-      return createBoundExpression({kind: BoundKind.BoundVariableExpression, type: variable.type, variable});
+    if (syntax.identifier.kind === SyntaxKind.VariableToken) {
+      return createBoundExpression({kind: BoundKind.BoundVariableExpression, type: variable.type, variable, tokens});
     }
 
-    return createBoundExpression({kind: BoundKind.BoundNameExpression, type: variable.type, variable, modifiers: 0});
+    return createBoundExpression({
+      kind: BoundKind.BoundNameExpression,
+      type: variable.type,
+      variable,
+      modifiers: 0,
+      tokens
+    });
   }
 
   bindLiteralExpression(syntax: LiteralExpressionSyntax) {
     const value = syntax.value ?? 0;
+    const tokens = this.getTextSpan(syntax);
     return createBoundExpression({
       kind: BoundKind.BoundLiteralExpression,
       value,
       type: syntax.type,
+      tokens,
     })
   }
 
@@ -358,8 +431,9 @@ export class Binder {
 
   bindUnaryExpression(syntax: UnaryExpressionSyntax) {
     let operand = this.bindExpression(syntax.operand);
+    const tokens = this.getTextSpan(syntax);
     if (operand.type === TypeSymbol.error) {
-      return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error});
+      return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error, tokens});
     }
 
     const operator = BoundUnaryOperator.bind(syntax.operator.kind, operand.type, syntax.post)
@@ -371,20 +445,27 @@ export class Binder {
     if (operator.kind === BoundUnaryOperatorKind.New) {
       // Support syntax "new Foo" without parens
       if (operand.kind === BoundKind.BoundNameExpression) {
-        const right = createBoundExpression({kind: BoundKind.BoundEmptyExpression, type: TypeSymbol.void})
+        const right = createBoundExpression({kind: BoundKind.BoundEmptyExpression, type: TypeSymbol.void, tokens})
         operand = createBoundExpression({
           kind: BoundKind.BoundBinaryExpression,
           left: operand,
           right: right,
           type: TypeSymbol.any,
           modifiers: 0,
-          operator: BoundBinaryOperator.memberCall
+          operator: BoundBinaryOperator.memberCall,
+          tokens
         })
       }
 
     }
 
-    return createBoundExpression({kind: BoundKind.BoundUnaryExpression, type: operator.resultType, operand, operator});
+    return createBoundExpression({
+      kind: BoundKind.BoundUnaryExpression,
+      type: operator.resultType,
+      operand,
+      operator,
+      tokens
+    });
   }
 
 
@@ -396,42 +477,46 @@ export class Binder {
   }
 
   private bindContinueStatement(syntax: ContinueStatementSyntax): BoundContinueStatement | BoundSemiColonStatement {
+    const tokens = this.getTextSpan(syntax);
     if (this.currentBreakContinueTarget.length === 0) {
       this.diagnostics.reportCannotContinue(syntax.keyword.span);
-      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
+      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement, tokens});
     }
 
     const depth = syntax.depth?.value ?? 1;
     if (depth > this.currentBreakContinueTarget.length || depth < 0) {
       this.diagnostics.reportCannotContinueOnThisDepth(syntax.keyword.span);
-      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
+      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement, tokens});
     }
 
     const {continue: label} = this.currentBreakContinueTarget[this.currentBreakContinueTarget.length - depth];
 
-    return createBoundStatement({kind: BoundKind.BoundContinueStatement, label, depth});
+    return createBoundStatement({kind: BoundKind.BoundContinueStatement, label, depth, tokens});
   }
 
   private bindBreakStatement(syntax: BreakStatementSyntax): BoundContinueStatement | BoundSemiColonStatement {
+    const tokens = this.getTextSpan(syntax);
     if (this.currentBreakContinueTarget.length === 0) {
       this.diagnostics.reportCannotBreak(syntax.keyword.span);
-      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
+      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement, tokens});
     }
 
     const depth = parseInt(syntax.depth?.text) ?? 1;
     if (depth > this.currentBreakContinueTarget.length || depth < 0) {
       this.diagnostics.reportCannotBreakOnThisDepth(syntax.keyword.span);
-      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement});
+      return createBoundStatement({kind: BoundKind.BoundSemiColonStatement, tokens});
     }
 
     const {break: label} = this.currentBreakContinueTarget[this.currentBreakContinueTarget.length - depth];
-    return createBoundStatement({kind: BoundKind.BoundBreakStatement, label, depth});
+    return createBoundStatement({kind: BoundKind.BoundBreakStatement, label, depth, tokens});
   }
 
-  private bindEmptyExpression(expression: EmptyExpressionSyntax) {
+  private bindEmptyExpression(syntax: EmptyExpressionSyntax) {
+    const tokens = this.getTextSpan(syntax);
     return createBoundExpression({
       kind: BoundKind.BoundEmptyExpression,
       type: TypeSymbol.void,
+      tokens,
     })
   }
 
@@ -473,7 +558,8 @@ export class Binder {
     const modifiers = this.bindModifiers(Modifiers.AllowedOnMethod, syntax.modifiers, 'method');
     const parameters = syntax.parameters.map(el => this.bindParameter(el));
 
-    this.unwrapScope()
+    this.unwrapScope();
+    const tokens = this.getTextSpan(syntax);
     return createBoundStatement({
       kind: BoundKind.BoundMethodStatement,
       statements,
@@ -482,17 +568,19 @@ export class Binder {
       name: syntax.identifier.text,
       type: TypeSymbol.func,
       scope,
+      tokens,
     })
   }
 
   private bindPropertiesStatement(syntax: PropertyStatementSyntax): BoundPropertyStatement {
     const modifiers = this.bindModifiers(Modifiers.AllowedOnProperty, syntax.modifiers, 'property');
-
+    const tokens = this.getTextSpan(syntax);
     return createBoundStatement({
       kind: BoundKind.BoundPropertyStatement,
       modifiers,
       name: syntax.identifier.text,
       init: syntax.init ? this.bindExpression(syntax.init) : undefined,
+      tokens,
     })
   }
 
@@ -506,6 +594,7 @@ export class Binder {
 
   private bindClassStatement(syntax: ClassStatementSyntax) {
     const scope = this.wrapScope();
+    const tokens = this.getTextSpan(syntax);
 
     const modifiers = this.bindModifiers(Modifiers.AllowedInClass, syntax.modifiers, 'class');
 
@@ -522,35 +611,40 @@ export class Binder {
     this.unwrapScope();
     return createBoundStatement({
       kind: BoundKind.BoundClassStatement,
-      name: syntax.name.text,
+      name: syntax.identifier.text,
       modifiers,
       methods,
       properties,
       type: TypeSymbol.class,
       scope,
+      tokens,
     })
   }
 
   private bindReturnStatementSyntax(syntax: ReturnStatementSyntax) {
+    const tokens = this.getTextSpan(syntax)
     return createBoundStatement({
       kind: BoundKind.BoundReturnStatement,
       expression: this.bindExpression(syntax.expression) as BoundExpression,
+      tokens,
     });
   }
 
   private bindCaseStatementSyntax(syntax: CaseStatementSyntax): BoundCaseStatement {
     const expression = this.bindExpression(syntax.expression);
     const statements = syntax.statements.map(el => this.bindStatement(el));
-
+    const tokens = this.getTextSpan(syntax);
     return createBoundStatement({
       kind: BoundKind.BoundCaseStatement,
       expression,
       statements,
+      tokens
     });
   }
 
   private bindSwitchStatementSyntax(syntax: SwitchStatementSyntax) {
     const expression = this.bindExpression(syntax.expression);
+    const tokens = this.getTextSpan(syntax)
 
     const placeholder = createPlaceholder<BoundSwitchStatement>({
       kind: BoundKind.BoundSwitchStatement,
@@ -558,6 +652,7 @@ export class Binder {
       continue: undefined,
       break: undefined,
       cases: undefined,
+      tokens,
     });
     placeholder.continue = placeholder.break = this.createLabel('break');
     this.currentBreakContinueTarget.push(placeholder)
@@ -569,7 +664,7 @@ export class Binder {
   }
 
   private expressionToArrayOf(expression: BoundExpression) {
-    switch(expression.kind) {
+    switch (expression.kind) {
       case BoundKind.BoundCommaExpression:
         return expression.expressions;
       case BoundKind.BoundEmptyExpression:
@@ -581,11 +676,13 @@ export class Binder {
 
   private bindArrayLiteralExpression(syntax: ArrayLiteralExpressionSyntax) {
     const expressions = this.expressionToArrayOf(this.bindExpression(syntax.members));
+    const tokens = this.getTextSpan(syntax);
 
     return createBoundExpression({
       kind: BoundKind.BoundArrayLiteralExpression,
       type: TypeSymbol.any, // ToDo; parse phpdocs?
       expressions,
+      tokens,
     })
   }
 }

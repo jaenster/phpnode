@@ -8,7 +8,7 @@ import {
   BoundJumpConditionalStatement,
   BoundJumpStatement,
   BoundLabelStatement, BoundMethodStatement, BoundPropertyStatement, BoundReturnStatement, BoundSemiColonStatement,
-  BoundStatement, BoundSwitchStatement, BoundVariableStatement, BoundWhileStatement
+  BoundStatement, BoundSwitchStatement, BoundWhileStatement
 } from "../binder/bound-statement.js";
 import {
   BoundAssignmentExpression,
@@ -42,8 +42,6 @@ export abstract class ToSource {
   abstract toSourceJumpStatement(node: BoundJumpStatement): string
 
   abstract toSourceLabelStatement(node: BoundLabelStatement): string
-
-  abstract toSourceVariableStatement(node: BoundVariableStatement): string
 
   abstract toSourceWhileStatement(node: BoundWhileStatement): string
 
@@ -107,8 +105,6 @@ export abstract class ToSource {
         return this.toSourceJumpStatement(node);
       case BoundKind.BoundLabelStatement:
         return this.toSourceLabelStatement(node);
-      case BoundKind.BoundVariableStatement:
-        return this.toSourceVariableStatement(node);
       case BoundKind.BoundWhileStatement:
         return this.toSourceWhileStatement(node);
       case BoundKind.BoundClassStatement:

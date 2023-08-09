@@ -19,10 +19,14 @@ import {
   BoundSemiColonStatement,
   BoundStatement,
   BoundSwitchStatement,
-  BoundVariableStatement,
   BoundWhileStatement
 } from "../binder/bound-statement.js";
-import {BoundKind, BoundNode, createBoundExpression, createBoundStatement} from "../binder/bound.node.js";
+import {
+  BoundKind,
+  BoundNode,
+  createBoundExpression,
+  createBoundStatement
+} from "../binder/bound.node.js";
 import {
   BoundArrayLiteralExpression,
   BoundAssignmentExpression,
@@ -82,8 +86,6 @@ export abstract class Transformer {
         return this.transformJumpStatement(statement);
       case BoundKind.BoundLabelStatement:
         return this.transformLabelStatement(statement);
-      case BoundKind.BoundVariableStatement:
-        return this.transformVariableStatement(statement);
       case BoundKind.BoundWhileStatement:
         return this.transformWhileStatement(statement);
       case BoundKind.BoundSemiColonStatement:
@@ -118,6 +120,7 @@ export abstract class Transformer {
         kind: BoundKind.BoundCaseStatement,
         expression,
         statements,
+        tokens: node.tokens,
       })
     }
     return node;
@@ -141,6 +144,7 @@ export abstract class Transformer {
         cases,
         break: node.break,
         continue: node.continue,
+        tokens: node.tokens,
       })
     }
     return node;
@@ -150,7 +154,7 @@ export abstract class Transformer {
     const expression = this.transformExpression(node.expression);
 
     if (expression !== node.expression) {
-      return createBoundStatement({kind: BoundKind.BoundEchoStatement, expression});
+      return createBoundStatement({kind: BoundKind.BoundEchoStatement, expression, tokens: node.tokens});
     }
     return node;
   }
@@ -163,7 +167,8 @@ export abstract class Transformer {
         kind: BoundKind.BoundBodyStatement,
         statement,
         break: node.break,
-        continue: node.continue
+        continue: node.continue,
+        tokens: node.tokens,
       })
     }
 
@@ -181,7 +186,7 @@ export abstract class Transformer {
     }
 
     if (changed) {
-      return createBoundStatement({kind: BoundKind.BoundBlockStatement, statements});
+      return createBoundStatement({kind: BoundKind.BoundBlockStatement, statements, tokens: node.tokens});
     }
 
     return node;
@@ -191,7 +196,7 @@ export abstract class Transformer {
     const expression = this.transformExpression(node.expression);
 
     if (expression !== node.expression) {
-      return createBoundStatement({kind: BoundKind.BoundExpressionStatement, expression});
+      return createBoundStatement({kind: BoundKind.BoundExpressionStatement, expression, tokens: node.tokens,});
     }
     return node;
   }
@@ -204,7 +209,14 @@ export abstract class Transformer {
     const body = this.transformBodyStatement(node.body);
 
     if (init !== node.init || condition !== node.condition || afterthought !== node.afterthought || body !== node.body) {
-      return createBoundStatement({kind: BoundKind.BoundForStatement, init, condition, body, afterthought});
+      return createBoundStatement({
+        kind: BoundKind.BoundForStatement,
+        init,
+        condition,
+        body,
+        afterthought,
+        tokens: node.tokens,
+      });
     }
 
     return node;
@@ -216,7 +228,7 @@ export abstract class Transformer {
     const elseBody = node.elseBody ? this.transformStatement(node.elseBody) : null;
 
     if (condition !== node.condition || body !== node.body || elseBody !== node.elseBody) {
-      return createBoundStatement({kind: BoundKind.BoundIfStatement, condition, body, elseBody});
+      return createBoundStatement({kind: BoundKind.BoundIfStatement, condition, body, elseBody, tokens: node.tokens,});
     }
     return node;
   }
@@ -229,7 +241,8 @@ export abstract class Transformer {
         kind: BoundKind.BoundJumpConditionalStatement,
         condition,
         label: node.label,
-        onTrue: node.onTrue
+        onTrue: node.onTrue,
+        tokens: node.tokens,
       });
     }
     return node;
@@ -243,21 +256,12 @@ export abstract class Transformer {
     return node;
   }
 
-  transformVariableStatement(node: BoundVariableStatement): BoundVariableStatement {
-    const init = this.transformExpression(node.init);
-
-    if (init !== node.init) {
-      return createBoundStatement({kind: BoundKind.BoundVariableStatement, init, variable: node.variable});
-    }
-    return node;
-  }
-
   transformWhileStatement(node: BoundWhileStatement): BoundStatement {
     const condition = this.transformExpression(node.condition);
     const body = this.transformBodyStatement(node.body);
 
     if (condition !== node.condition || body !== node.body) {
-      return createBoundStatement({kind: BoundKind.BoundWhileStatement, condition, body});
+      return createBoundStatement({kind: BoundKind.BoundWhileStatement, condition, body, tokens: node.tokens,});
     }
 
     return node;
@@ -316,6 +320,7 @@ export abstract class Transformer {
         kind: BoundKind.BoundParenExpression,
         expression,
         type: expression.type,
+        tokens: node.tokens,
       });
     }
     return node;
@@ -333,6 +338,7 @@ export abstract class Transformer {
         type: node.variable.type,
         expression,
         variable: node.variable,
+        tokens: node.tokens,
       });
     }
     return node;
@@ -354,6 +360,7 @@ export abstract class Transformer {
         operator,
         right,
         modifiers: node.modifiers,
+        tokens: node.tokens,
       })
     }
     return node;
@@ -382,7 +389,8 @@ export abstract class Transformer {
       return createBoundExpression({
         kind: BoundKind.BoundCommaExpression,
         type: last.type ?? TypeSymbol.void,
-        expressions
+        expressions,
+        tokens: node.tokens,
       });
     }
 
@@ -401,7 +409,8 @@ export abstract class Transformer {
         kind: BoundKind.BoundUnaryExpression,
         type: node.operator.resultType,
         operator: node.operator,
-        operand
+        operand,
+        tokens: node.tokens,
       })
     }
 
@@ -413,7 +422,8 @@ export abstract class Transformer {
     if (expression !== node.expression) {
       return createBoundStatement({
         kind: BoundKind.BoundReturnStatement,
-        expression
+        expression,
+        tokens: node.tokens,
       });
     }
 
@@ -445,6 +455,7 @@ export abstract class Transformer {
         type: node.type,
         scope: node.scope,
         modifiers: node.modifiers,
+        tokens: node.tokens,
       })
     }
     return node;
@@ -474,6 +485,7 @@ export abstract class Transformer {
         name: node.name,
         type: node.type,
         scope: node.scope,
+        tokens: node.tokens,
       })
     }
     return node;
@@ -509,6 +521,7 @@ export abstract class Transformer {
         name: node.name,
         type: node.type,
         scope: node.scope,
+        tokens: node.tokens,
       })
     }
     return node;
@@ -528,6 +541,7 @@ export abstract class Transformer {
         kind: BoundKind.BoundArrayLiteralExpression,
         type: node.type,
         expressions,
+        tokens: node.tokens,
       })
     }
     return node;

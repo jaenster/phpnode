@@ -29,14 +29,12 @@ import {
   BoundReturnStatement,
   BoundSemiColonStatement,
   BoundSwitchStatement,
-  BoundVariableStatement,
   BoundWhileStatement
 } from "../binder/bound-statement.js";
 import {ToSource} from "./to-source.js";
 import {
   BoundBinaryOperator,
   BoundBinaryOperatorKind,
-  BoundUnaryOperator,
   BoundUnaryOperatorKind
 } from "../binder/bound-operator.js";
 import {KeywordsByName, KeywordsBySyntax} from "../source/syntax/keywords.js";
@@ -282,10 +280,6 @@ export default __php__file("${escape(node.filename)}", async () => {`
 
   toSourceVariableExpression(node: BoundVariableExpression): string {
     return node.variable.name;
-  }
-
-  toSourceVariableStatement(node: BoundVariableStatement): string {
-    return "";
   }
 
   toSourceWhileStatement(node: BoundWhileStatement): string {

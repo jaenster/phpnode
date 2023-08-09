@@ -8,7 +8,6 @@ import {
   FunctionStatementSyntax,
   PropertyStatementSyntax,
   StatementSyntax,
-  VariableStatementSyntax
 } from "./syntax/statement.syntax.js";
 import {
   createExpressionNode,
@@ -158,39 +157,35 @@ export class Parser {
     })
   }
 
-  private parseVariableDeclaration(): VariableStatementSyntax {
-    const keyword = this.nextToken();
-    const identifier = this.match(SyntaxKind.IdentifierToken);
-    const equal = this.match(SyntaxKind.EqualToken);
-    const init = this.parseExpression();
-    this.parseSemiColonStatement();
-
-    return createStatementNode({kind: SyntaxNodeKind.VariableStatementSyntax, keyword, identifier, equal, init});
-  }
-
   private parseSemiColonStatement() {
-    this.match(SyntaxKind.SemiColonToken);
-    return createStatementNode({kind: SyntaxNodeKind.SemiColonSyntax})
+    const semicolon = this.match(SyntaxKind.SemiColonToken);
+    return createStatementNode({kind: SyntaxNodeKind.SemiColonSyntax, semicolon})
   }
 
   private parseBreakStatement() {
     const keyword = this.match(SyntaxKind.BreakKeyword);
-    const [hasDepth,depth] = this.optional(SyntaxKind.NumberToken);
+    const [hasDepth, depth] = this.optional(SyntaxKind.NumberToken);
+    const semicolon = this.match(SyntaxKind.SemiColonToken);
 
-    return createStatementNode({kind: SyntaxNodeKind.BreakStatementSyntax, keyword, depth})
+    return createStatementNode({kind: SyntaxNodeKind.BreakStatementSyntax, keyword, depth, semicolon})
   }
 
   private parseContinueStatement() {
     const keyword = this.match(SyntaxKind.ContinueKeyword);
-    const [hasDepth,depth] = this.optional(SyntaxKind.NumberToken);
+    const [hasDepth, depth] = this.optional(SyntaxKind.NumberToken);
+    const semicolon = this.match(SyntaxKind.SemiColonToken);
 
-    return createStatementNode({kind: SyntaxNodeKind.ContinueStatementSyntax, keyword, depth})
+    return createStatementNode({kind: SyntaxNodeKind.ContinueStatementSyntax, keyword, depth, semicolon})
   }
 
   private parseExpressionStatement() {
     const expression = this.parseExpression();
-    this.match(SyntaxKind.SemiColonToken);
-    return createStatementNode<ExpressionStatementSyntax>({kind: SyntaxNodeKind.ExpressionStatementSyntax, expression});
+    const semicolon = this.match(SyntaxKind.SemiColonToken);
+    return createStatementNode<ExpressionStatementSyntax>({
+      kind: SyntaxNodeKind.ExpressionStatementSyntax,
+      expression,
+      semicolon
+    });
   }
 
   private parseIfStatement() {
@@ -246,13 +241,14 @@ export class Parser {
 
   private parseCommaExpression(): ExpressionSyntax & SyntaxNode {
     const expression = this.parseSingleExpression();
+    const commas = [] as SyntaxToken[]
     if (this.current().kind === SyntaxKind.CommaToken) {
       const expressions = [expression];
       do {
-        this.nextToken(); // Eat the comma
+        commas.push(this.nextToken()); // Eat the comma
         expressions.push(this.parseSingleExpression());
       } while (this.current().kind === SyntaxKind.CommaToken)
-      return createExpressionNode({kind: SyntaxNodeKind.CommaExpressionSyntax, expressions});
+      return createExpressionNode({kind: SyntaxNodeKind.CommaExpressionSyntax, expressions, commas});
     }
 
     return expression;
@@ -297,11 +293,13 @@ export class Parser {
 
     // while you only can do a++ or a--, call()?.something(), here ? is a valid postfix
     if (supportsOnlyNameExpression(next.kind) && literal.kind !== SyntaxNodeKind.NameExpressionSyntax) {
+      const token = this.current();
       this.diagnostics.reportCanOnlyUsePostfixOnNameExpression(literal.span)
       return createExpressionNode({
         kind: SyntaxNodeKind.LiteralExpressionSyntax,
         type: TypeSymbol.error,
-        value: null
+        value: null,
+        token: token,
       })
     }
 
@@ -309,7 +307,7 @@ export class Parser {
       kind: SyntaxNodeKind.UnaryExpressionSyntax,
       operand: literal,
       operator: next,
-      post: true
+      post: true,
     });
 
 
@@ -343,7 +341,7 @@ export class Parser {
   }
 
   private parseParenExpression(): ExpressionSyntax & SyntaxNode {
-    const left = this.match(SyntaxKind.ParenOpenToken);
+    const open = this.match(SyntaxKind.ParenOpenToken);
 
     // If syntax is (), it's an empty function call, or can be seen as an empty expression
     const expression = this.current().kind === SyntaxKind.ParenCloseToken
@@ -351,8 +349,8 @@ export class Parser {
       : this.parseExpression();
 
 
-    const right = this.match(SyntaxKind.ParenCloseToken);
-    return createExpressionNode({kind: SyntaxNodeKind.ParenExpressionSyntax, left, expression, right});
+    const close = this.match(SyntaxKind.ParenCloseToken);
+    return createExpressionNode({kind: SyntaxNodeKind.ParenExpressionSyntax, open, expression, close});
   }
 
   private parsePrimaryExpression(): ExpressionSyntax & SyntaxNode {
@@ -369,29 +367,40 @@ export class Parser {
         const string = this.match(SyntaxKind.StringToken);
         return createExpressionNode({
           kind: SyntaxNodeKind.LiteralExpressionSyntax,
-          value: string,
-          type: TypeSymbol.string
+          value: string.value,
+          type: TypeSymbol.string,
+          token: string,
         });
 
       case SyntaxKind.VariableToken:
         const variable = this.match(SyntaxKind.VariableToken);
-        return createExpressionNode({kind: SyntaxNodeKind.NameExpressionSyntax, id: variable})
+        return createExpressionNode({kind: SyntaxNodeKind.NameExpressionSyntax, identifier: variable})
 
       case SyntaxKind.IdentifierToken:
-        return createExpressionNode({kind: SyntaxNodeKind.NameExpressionSyntax, id: this.nextToken()})
+        return createExpressionNode({kind: SyntaxNodeKind.NameExpressionSyntax, identifier: this.nextToken()})
 
       case SyntaxKind.SquareOpenToken:
         return this.parseArrayLiteral()
       default:
         const number = this.match(SyntaxKind.NumberToken);
-        return createExpressionNode({kind: SyntaxNodeKind.LiteralExpressionSyntax, value: number, type: TypeSymbol.int})
+        return createExpressionNode({
+          kind: SyntaxNodeKind.LiteralExpressionSyntax,
+          value: number,
+          type: TypeSymbol.int,
+          token: number
+        })
     }
   }
 
   private parseBooleanLiteral() {
     const keyword = this.nextToken();
     const value = keyword.kind === SyntaxKind.TrueKeyword;
-    return createExpressionNode({kind: SyntaxNodeKind.LiteralExpressionSyntax, value, type: TypeSymbol.bool})
+    return createExpressionNode({
+      kind: SyntaxNodeKind.LiteralExpressionSyntax,
+      value,
+      type: TypeSymbol.bool,
+      token: keyword
+    })
   }
 
 
@@ -514,23 +523,25 @@ export class Parser {
     const parseExpression = this.current().kind !== SyntaxKind.EOF ? currentLine === nextLine : false;
     const expression = parseExpression ? this.parseExpression() : undefined;
 
-    this.match(SyntaxKind.SemiColonToken);
+    const semicolon = this.match(SyntaxKind.SemiColonToken);
 
     return createStatementNode({
       kind: SyntaxNodeKind.ReturnStatementSyntax,
       keyword,
       expression,
+      semicolon,
     })
   }
 
   private parseEchoStatement() {
     const keyword = this.match(SyntaxKind.EchoKeyword)
     const expression = this.parseExpression();
-    this.match(SyntaxKind.SemiColonToken);
+    const semicolon = this.match(SyntaxKind.SemiColonToken);
     return createStatementNode<ExpressionStatementSyntax>({
       kind: SyntaxNodeKind.EchoStatementSyntax,
       expression,
-      keyword
+      keyword,
+      semicolon,
     });
   }
 
@@ -586,14 +597,15 @@ export class Parser {
         return createStatementNode({
           kind: SyntaxNodeKind.LiteralExpressionSyntax,
           type: TypeSymbol.error,
-          value: null
+          value: null,
+          token: type,
         })
       }
       const identifier = this.parseVariable();
       const [hasInit, equal] = this.optional(SyntaxKind.EqualToken);
-      const init = hasInit && this.parseExpression();
+      const init = hasInit ? this.parseExpression() : undefined;
 
-      this.optional(SyntaxKind.SemiColonToken);
+      const semicolon = this.match(SyntaxKind.SemiColonToken);
       return createStatementNode({
         kind: SyntaxNodeKind.PropertyStatementSyntax,
         identifier,
@@ -601,6 +613,7 @@ export class Parser {
         type,
         equal,
         init,
+        semicolon,
       })
     }
   }
@@ -634,11 +647,10 @@ export class Parser {
     const modifiers = this.lostModifiers;
 
     const keyword = this.match(SyntaxKind.ClassKeyword);
-    //ToDo; support anon classes
-    const name = this.match(SyntaxKind.IdentifierToken);
+    const identifier = this.match(SyntaxKind.IdentifierToken);
 
     let extend: SyntaxToken;
-    const implents: SyntaxToken[] = [];
+    const implement: SyntaxToken[] = [];
     const [hasExtends, extendKeyword] = this.optional(SyntaxKind.ExtendsKeyword);
     if (hasExtends) {
       extend = this.match(SyntaxKind.IdentifierToken);
@@ -647,7 +659,7 @@ export class Parser {
     const [hasImplements, implementsKeyword] = this.optional(SyntaxKind.ImplementsKeyword);
     if (hasImplements) {
       do {
-        implents.push(this.match(SyntaxKind.IdentifierToken));
+        implement.push(this.match(SyntaxKind.IdentifierToken));
       } while (this.current().kind === SyntaxKind.CommaToken);
     }
 
@@ -659,10 +671,12 @@ export class Parser {
       keyword,
       methods,
       extend,
-      implements: implents,
+      implementsKeyword,
+      extendKeyword,
+      implements: implement,
       modifiers,
       properties,
-      name
+      identifier,
     })
   }
 

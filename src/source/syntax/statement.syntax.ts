@@ -2,7 +2,6 @@ import type {ElseClause, ParametersSyntax, TypeClause} from "./special.syntax.js
 import type {ExpressionSyntax} from "./expression.syntax.js";
 import {SyntaxToken} from "../lexer.js";
 import {SyntaxNodeKind} from "./syntax.node.js";
-import {SyntaxKind} from "./syntax.kind.js";
 
 export type StatementSyntax =
   | BlockStatementSyntax
@@ -16,7 +15,6 @@ export type StatementSyntax =
   | PropertyStatementSyntax
   | ReturnStatementSyntax
   | SemiColonSyntax
-  | VariableStatementSyntax
   | WhileStatementSyntax
   | EchoStatementSyntax
   | PrintStatementSyntax
@@ -34,16 +32,19 @@ export type BlockStatementSyntax = {
 export type BreakStatementSyntax = {
   kind: SyntaxNodeKind.BreakStatementSyntax,
   keyword: SyntaxToken,
+  semicolon: SyntaxToken,
   depth?: SyntaxToken,
 }
 export type ContinueStatementSyntax = {
   kind: SyntaxNodeKind.ContinueStatementSyntax,
   keyword: SyntaxToken,
+  semicolon: SyntaxToken,
   depth?: SyntaxToken,
 }
 export type ExpressionStatementSyntax = {
   kind: SyntaxNodeKind.ExpressionStatementSyntax,
   expression: ExpressionSyntax,
+  semicolon: SyntaxToken,
 }
 export type ForStatementSyntax = {
   kind: SyntaxNodeKind.ForStatementSyntax
@@ -58,7 +59,7 @@ export type IfStatementSyntax = {
   keyword: SyntaxToken,
   condition: ExpressionSyntax,
   body: StatementSyntax,
-  elseClause?: ElseClause
+  elseClause?: ElseClause,
 }
 export type FunctionStatementSyntax = {
   kind: SyntaxNodeKind.FunctionStatementSyntax,
@@ -75,9 +76,11 @@ export type ClassStatementSyntax = {
   kind: SyntaxNodeKind.ClassStatementSyntax,
   modifiers: SyntaxToken[]
   keyword: SyntaxToken,
-  name: SyntaxToken,
+  identifier: SyntaxToken,
   extend?: SyntaxToken,
-  implements: SyntaxToken[]
+  extendKeyword?: SyntaxToken,
+  implements: SyntaxToken[],
+  implementsKeyword?: SyntaxToken,
   methods: FunctionStatementSyntax[],
   properties: PropertyStatementSyntax[],
 }
@@ -87,22 +90,18 @@ export type PropertyStatementSyntax = {
   identifier: SyntaxToken,
   type: SyntaxToken,
   init?: ExpressionSyntax,
-  equal?: SyntaxToken
+  equal?: SyntaxToken,
+  semicolon: SyntaxToken,
 }
 export type ReturnStatementSyntax = {
   kind: SyntaxNodeKind.ReturnStatementSyntax,
   keyword: SyntaxToken,
   expression: ExpressionSyntax,
+  semicolon: SyntaxToken,
 }
 export type SemiColonSyntax = {
   kind: SyntaxNodeKind.SemiColonSyntax,
-}
-export type VariableStatementSyntax = {
-  kind: SyntaxNodeKind.VariableStatementSyntax,
-  keyword: SyntaxToken,
-  identifier: SyntaxToken,
-  equal?: SyntaxToken,
-  init?: ExpressionSyntax,
+  semicolon: SyntaxToken,
 }
 export type WhileStatementSyntax = {
   kind: SyntaxNodeKind.WhileStatementSyntax
@@ -115,6 +114,7 @@ export type EchoStatementSyntax = {
   kind: SyntaxNodeKind.EchoStatementSyntax,
   keyword: SyntaxToken,
   expression: ExpressionSyntax,
+  semicolon: SyntaxToken,
 }
 export type PrintStatementSyntax = {
   kind: SyntaxNodeKind.PrintStatementSyntax,

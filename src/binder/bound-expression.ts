@@ -1,96 +1,87 @@
 import {TypeSymbol, VariableSymbol} from "../symbols/symbols.js";
 import {BoundBinaryOperator, BoundUnaryOperator} from "./bound-operator.js";
-import {BoundKind, BoundNodeTypes} from "./bound.node.js";
+import {BoundKind, BoundNodeTypes, BoundSpanBase} from "./bound.node.js";
 import {BoundClassStatement, BoundFunctionStatement} from "./bound-statement.js";
 import {Modifiers} from "../source/syntax/syntax.facts.js";
 
 export type BoundExpression = (
+  | BoundArrayLiteralExpression
   | BoundAssignmentExpression
   | BoundBinaryExpression
   | BoundCallExpression
+  | BoundClassStatement
+  | BoundCommaExpression
   | BoundEmptyExpression
   | BoundErrorExpression
-  | BoundNameExpression
-  | BoundCommaExpression
+  | BoundFunctionStatement
+  | BoundJavascriptLiteralArrayExpression
   | BoundLiteralExpression
+  | BoundNameExpression
+  | BoundParenExpression
   | BoundUnaryExpression
   | BoundVariableExpression
-  | BoundParenExpression
-  | BoundArrayLiteralExpression
-  | BoundJavascriptLiteralArrayExpression
-
-  // Some statements are valid expressions
-  | BoundClassStatement
-  | BoundFunctionStatement
   ) & { parent?: BoundNodeTypes }
 
-export type BoundParenExpression = {
-  kind: BoundKind.BoundParenExpression,
+export type BoundArrayLiteralExpression = BoundSpanBase & {
+  kind: BoundKind.BoundArrayLiteralExpression,
   type: TypeSymbol,
-  expression: BoundExpression,
+  expressions: BoundExpression[],
 }
-export type BoundAssignmentExpression = {
+export type BoundAssignmentExpression = BoundSpanBase & {
   kind: BoundKind.BoundAssignmentExpression,
   type: TypeSymbol,
   variable: VariableSymbol,
   expression: BoundExpression,
 }
-export type BoundBinaryExpression = {
-  kind: BoundKind.BoundBinaryExpression
+export type BoundBinaryExpression = BoundSpanBase & {
+  kind: BoundKind.BoundBinaryExpression,
   type: TypeSymbol,
   left: BoundExpression,
   right: BoundExpression,
   operator: BoundBinaryOperator,
   modifiers: Modifiers,
 }
-export type BoundCommaExpression = {
+export type BoundCallExpression = BoundSpanBase & {
+  kind: BoundKind.BoundVariableExpression,
+  type: TypeSymbol,
+  variable: VariableSymbol,
+}
+export type BoundCommaExpression = BoundSpanBase & {
   kind: BoundKind.BoundCommaExpression,
   type: TypeSymbol,
   expressions: BoundExpression[],
 }
-export type BoundErrorExpression = {
-  kind: BoundKind.BoundErrorExpression,
+export type BoundEmptyExpression = BoundSpanBase & { kind: BoundKind.BoundEmptyExpression, type: TypeSymbol, }
+export type BoundErrorExpression = BoundSpanBase & { kind: BoundKind.BoundErrorExpression, type: TypeSymbol, }
+export type BoundJavascriptLiteralArrayExpression = BoundSpanBase & {
+  kind: BoundKind.BoundJavascriptLiteralArrayExpression,
   type: TypeSymbol,
+  expressions: BoundExpression[],
 }
-export type BoundLiteralExpression = {
+export type BoundLiteralExpression = BoundSpanBase & {
   kind: BoundKind.BoundLiteralExpression,
   type: TypeSymbol,
   value: any,
 }
-// Used for function calls without any arguments (), it's an empty comma expression
-export type BoundEmptyExpression = {
-  kind: BoundKind.BoundEmptyExpression,
-  type: TypeSymbol,
-}
-export type BoundNameExpression = {
+export type BoundNameExpression = BoundSpanBase & {
   kind: BoundKind.BoundNameExpression,
   type: TypeSymbol,
   variable: VariableSymbol,
   modifiers: Modifiers,
 }
-export type BoundUnaryExpression = {
+export type BoundParenExpression = BoundSpanBase & {
+  kind: BoundKind.BoundParenExpression,
+  type: TypeSymbol,
+  expression: BoundExpression,
+}
+export type BoundUnaryExpression = BoundSpanBase & {
   kind: BoundKind.BoundUnaryExpression,
   type: TypeSymbol,
   operator: BoundUnaryOperator,
   operand: BoundExpression,
 }
-export type BoundVariableExpression = {
+export type BoundVariableExpression = BoundSpanBase & {
   kind: BoundKind.BoundVariableExpression,
   type: TypeSymbol,
   variable: VariableSymbol,
-}
-export type BoundCallExpression = {
-  kind: BoundKind.BoundVariableExpression,
-  type: TypeSymbol,
-  variable: VariableSymbol,
-}
-export type BoundArrayLiteralExpression = {
-  kind: BoundKind.BoundArrayLiteralExpression,
-  type: TypeSymbol,
-  expressions: BoundExpression[],
-}
-export type BoundJavascriptLiteralArrayExpression = {
-  kind: BoundKind.BoundJavascriptLiteralArrayExpression,
-  type: TypeSymbol,
-  expressions: BoundExpression[],
 }

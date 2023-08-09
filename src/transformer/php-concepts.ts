@@ -28,6 +28,7 @@ export class PhpConcepts extends Transformer {
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalPrint,
       modifiers: Modifiers.TranspilerInternal,
+      tokens: [],
     });
     const right = this.transformExpression(node.expression);
     const operator = BoundBinaryOperator.call
@@ -35,11 +36,13 @@ export class PhpConcepts extends Transformer {
     // An echo statement is just a call to print
     return createBoundStatement({
       kind: BoundKind.BoundExpressionStatement,
+      tokens: node.tokens,
       expression: createBoundExpression({
         kind: BoundKind.BoundBinaryExpression,
         type: operator.resultType,
         left, operator, right,
         modifiers: Modifiers.TranspilerSync,
+        tokens: [],
       })
     })
   }
@@ -59,10 +62,12 @@ export class PhpConcepts extends Transformer {
         type: TypeSymbol.func,
         variable: new VariableSymbol('String', true, TypeSymbol.func),
         modifiers: 0,
+        tokens: [],
       }),
       right: node,
       operator: BoundBinaryOperator.call,
       modifiers: Modifiers.TranspilerSync,
+      tokens: node.tokens,
     })
   }
 
@@ -79,6 +84,7 @@ export class PhpConcepts extends Transformer {
           operator: BoundBinaryOperator.addition,
           type: TypeSymbol.string,
           modifiers: 0,
+          tokens: node.tokens,
         })
 
       case BoundBinaryOperatorKind.MemberAccess: {
@@ -96,6 +102,7 @@ export class PhpConcepts extends Transformer {
           right: node.right,
           type: TypeSymbol.string,
           modifiers: 0,
+          tokens: node.tokens,
         }))
     }
 
@@ -125,6 +132,7 @@ export class PhpConcepts extends Transformer {
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalUse,
       modifiers: Modifiers.TranspilerInternal,
+      tokens: [],
     });
 
     // __php__use(namespaceString, context)
@@ -132,18 +140,21 @@ export class PhpConcepts extends Transformer {
     const tmpRight = createBoundExpression({
       kind: BoundKind.BoundCommaExpression,
       type: TypeSymbol.any,
+      tokens: [],
       expressions: [
         //  "Foo"
         createBoundExpression({
           kind: BoundKind.BoundLiteralExpression,
           type: TypeSymbol.string,
           value: node.variable.name,
+          tokens: [],
         }),
         // ""
         createBoundExpression({
           kind: BoundKind.BoundLiteralExpression,
           type: TypeSymbol.string,
           value: this.currentNamespace, // Class key
+          tokens: [],
         }),
       ],
     });
@@ -157,11 +168,13 @@ export class PhpConcepts extends Transformer {
     return createBoundExpression({
       kind: BoundKind.BoundParenExpression,
       type: operator.resultType,
+      tokens: node.tokens,
       expression: createBoundExpression({
         kind: BoundKind.BoundBinaryExpression,
         type: operator.resultType,
         left, operator, right,
         modifiers: Modifiers.TranspilerParen,
+        tokens: [],
       }),
     })
   }
@@ -180,6 +193,7 @@ export class PhpConcepts extends Transformer {
       return createBoundStatement({
         kind: BoundKind.BoundBlockStatement,
         statements,
+        tokens: node.tokens,
       })
     }
 
@@ -197,11 +211,13 @@ export class PhpConcepts extends Transformer {
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalNamespace,
       modifiers: Modifiers.TranspilerInternal,
+      tokens: node.tokens,
     });
 
     // Create arguments ('Namespace', 'Foo', async () => class Foo {})
     const tmpRight = createBoundExpression({
       kind: BoundKind.BoundCommaExpression,
+      tokens: [],
       type: TypeSymbol.any,
       expressions: [
         //  "Namespace"
@@ -209,12 +225,14 @@ export class PhpConcepts extends Transformer {
           kind: BoundKind.BoundLiteralExpression,
           type: TypeSymbol.string,
           value: this.currentNamespace,
+          tokens: [],
         }),
         // "Foo"
         createBoundExpression({
           kind: BoundKind.BoundLiteralExpression,
           type: TypeSymbol.string,
           value: node.name, // Class key
+          tokens: [],
         }),
         // function () {return class Bar {}}
         createBoundExpression({
@@ -223,11 +241,13 @@ export class PhpConcepts extends Transformer {
           parameters: [],
           scope: node.scope.createChild(),
           modifiers: 0,
+          tokens: [],
           statements: [
             createBoundStatement({
               kind: BoundKind.BoundReturnStatement,
               // Expression is class statement which is a valid expression
               expression: node,
+              tokens: [],
             })
           ]
         })
@@ -243,7 +263,9 @@ export class PhpConcepts extends Transformer {
     // An echo statement is just a call to print
     return createBoundStatement({
       kind: BoundKind.BoundExpressionStatement,
+      tokens: node.tokens,
       expression: createBoundExpression({
+        tokens: [],
         kind: BoundKind.BoundBinaryExpression,
         type: operator.resultType,
         left, operator, right,
@@ -308,19 +330,20 @@ export class PhpConcepts extends Transformer {
     return node;
   }
 
-  private transformArrayLiteralMember(expression: BoundExpression): BoundExpression {
-    switch (expression.kind) {
+  private transformArrayLiteralMember(node: BoundExpression): BoundExpression {
+    switch (node.kind) {
       case BoundKind.BoundBinaryExpression:
         // ["a" => 5] or [$foo->bar() => $foo->baz()]
-        if (expression.operator === BoundBinaryOperator.getByOperatorKind(BoundBinaryOperatorKind.FatArrow)) {
+        if (node.operator === BoundBinaryOperator.getByOperatorKind(BoundBinaryOperatorKind.FatArrow)) {
           // convert to [["a", 5]]
           return createBoundExpression({
             kind: BoundKind.BoundJavascriptLiteralArrayExpression,
             type: TypeSymbol.any,
             expressions: [ // $foo->bar(), $foo->baz()
-              expression.left,
-              expression.right,
+              node.left,
+              node.right,
             ],
+            tokens: node.tokens,
           })
         }
 
@@ -332,9 +355,15 @@ export class PhpConcepts extends Transformer {
           kind: BoundKind.BoundJavascriptLiteralArrayExpression,
           type: TypeSymbol.any,
           expressions: [ // undefined, expression
-            createBoundExpression({kind: BoundKind.BoundLiteralExpression, value: undefined, type: TypeSymbol.void,}),
-            expression
+            createBoundExpression({
+              kind: BoundKind.BoundLiteralExpression,
+              value: undefined,
+              type: TypeSymbol.void,
+              tokens: [],
+            }),
+            node
           ],
+          tokens: node.tokens,
         })
     }
   }
@@ -346,7 +375,8 @@ export class PhpConcepts extends Transformer {
       kind: BoundKind.BoundNameExpression,
       type: TypeSymbol.func,
       variable: BuiltinFunctions.internalAssocArray,
-      modifiers: Modifiers.TranspilerInternal|Modifiers.TranspilerSync,
+      modifiers: Modifiers.TranspilerInternal | Modifiers.TranspilerSync,
+      tokens: [],
     });
 
 
@@ -355,6 +385,7 @@ export class PhpConcepts extends Transformer {
       kind: BoundKind.BoundJavascriptLiteralArrayExpression,
       type: TypeSymbol.any,
       expressions: node.expressions.map(el => this.transformArrayLiteralMember(el)),
+      tokens: [],
     });
 
 
@@ -365,6 +396,7 @@ export class PhpConcepts extends Transformer {
       type: operator.resultType,
       left, operator, right,
       modifiers: Modifiers.TranspilerSync,
+      tokens: node.tokens,
     })
   }
 

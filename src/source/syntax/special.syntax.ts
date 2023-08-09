@@ -20,7 +20,7 @@ export type TypeClause = {
   identifier: SyntaxToken,
 }
 
-export type ParametersSyntax = {
+export type ParametersSyntax =  {
   kind: SyntaxNodeKind.ParameterSyntax
   name: SyntaxToken,
   type: SyntaxToken,
