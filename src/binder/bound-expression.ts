@@ -32,6 +32,7 @@ export type BoundAssignmentExpression = BoundSpanBase & {
   type: TypeSymbol,
   variable: VariableSymbol,
   expression: BoundExpression,
+  isArray: boolean,
 }
 export type BoundBinaryExpression = BoundSpanBase & {
   kind: BoundKind.BoundBinaryExpression,

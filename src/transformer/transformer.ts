@@ -307,7 +307,9 @@ export abstract class Transformer {
       case BoundKind.BoundParenExpression:
         return this.transformParenExpression(node)
       case BoundKind.BoundArrayLiteralExpression:
-        return this.transformArrayLiteralExpression(node)
+        return this.transformArrayLiteralExpression(node);
+      case BoundKind.BoundJavascriptLiteralArrayExpression:
+        return node;
     }
     throw new Error('Unexpected expression ' + BoundKind[node?.kind]);
   }
@@ -339,6 +341,7 @@ export abstract class Transformer {
         expression,
         variable: node.variable,
         tokens: node.tokens,
+        isArray: node.isArray,
       });
     }
     return node;

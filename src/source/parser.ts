@@ -17,7 +17,7 @@ import {
   SyntaxNodeKind
 } from "./syntax/syntax.node.js";
 import {ElseClause, FileSyntax, ParametersSyntax, TypeClause} from "./syntax/special.syntax.js";
-import {ExpressionSyntax} from "./syntax/expression.syntax.js";
+import {AssignmentExpressionSyntax, ExpressionSyntax} from "./syntax/expression.syntax.js";
 import {
   canBePostFixOperator,
   getBinaryOperatorPrecedence,
@@ -28,6 +28,7 @@ import {
 } from "./syntax/syntax.facts.js";
 import {TypeSymbol} from "../symbols/symbols.js";
 import {SyntaxKind} from "./syntax/syntax.kind.js";
+import {PickByType} from "../types.js";
 
 
 export class Parser {
@@ -254,23 +255,60 @@ export class Parser {
     return expression;
   }
 
-  private parseAssignmentExpression(): ExpressionSyntax & SyntaxNode {
-    if (this.peek(0).kind == SyntaxKind.VariableToken
-      && this.peek(1).kind == SyntaxKind.EqualToken) {
-
-      const identifier = this.nextToken();
-      const operator = this.nextToken();
-      const expression = this.parseAssignmentExpression();
-
-      return createExpressionNode({
-        kind: SyntaxNodeKind.AssignmentExpressionSyntax,
-        identifier,
-        operator,
-        expression,
-      })
+  private isSequence<T extends Record<string, SyntaxToken>>(value: [key: keyof T, kind: SyntaxKind | SyntaxKind[], needed?: boolean][]) {
+    const ret = {} as T;
+    let index = 0;
+    for (const [key, kind, needed = true] of value) {
+      const token = this.peek(index);
+      const kinds = Array.isArray(kind) ? kind : [kind];
+      if (kinds.includes(token.kind)) {
+        (ret[key] as SyntaxToken) = token;
+        index++;
+      } else if (needed) {
+        return undefined;
+      }
     }
 
-    return this.parseBinaryExpression();
+    // Skip all tokens that are used
+    for (let i = 0; i < index; i++) {
+      this.nextToken();
+    }
+    return ret;
+  }
+
+
+  private parseAssignmentExpression(): ExpressionSyntax & SyntaxNode {
+    const sequence = this.isSequence<PickByType<AssignmentExpressionSyntax, SyntaxToken>>(
+      [ // $foo = expression
+        // $foo [] = expression
+        ['identifier', SyntaxKind.VariableToken],
+        ['open', SyntaxKind.SquareOpenToken, false],
+        ['close', SyntaxKind.SquareCloseToken, false],
+        ['operator', [SyntaxKind.EqualToken]],
+      ],
+    );
+
+    if (!sequence) {
+      return this.parseBinaryExpression();
+    }
+
+    const {
+      identifier,
+      open,
+      close,
+      operator,
+    } = sequence;
+    const expression = this.parseAssignmentExpression();
+
+    // ToDo; write right to left behavior for assignment
+    return createExpressionNode({
+      kind: SyntaxNodeKind.AssignmentExpressionSyntax,
+      identifier,
+      operator,
+      expression,
+      open,
+      close,
+    })
   }
 
   private parseUnaryExpression(parentPrecedence: number = 0): ExpressionSyntax & SyntaxNode {

@@ -14,6 +14,7 @@ import {BuiltinFunctions} from "../php/buildin-functions.js";
 import {BoundFile} from "../binder/bound-special.js";
 import {
   BoundArrayLiteralExpression,
+  BoundAssignmentExpression,
   BoundBinaryExpression,
   BoundExpression,
   BoundNameExpression
@@ -328,6 +329,51 @@ export class PhpConcepts extends Transformer {
     }
 
     return node;
+  }
+
+  transformAssignmentExpression(node: BoundAssignmentExpression): BoundExpression {
+    if (!node.isArray) {
+      return super.transformAssignmentExpression(node);
+    }
+
+    // Transform a $foo [] = 5; to $foo.add(5)
+    const replacement = createBoundExpression({ // $foo.
+      kind: BoundKind.BoundBinaryExpression,
+      left: createBoundExpression({
+        kind: BoundKind.BoundVariableExpression,
+        variable: node.variable,
+        type: node.type,
+        tokens: node.tokens,
+      }),
+      operator: BoundBinaryOperator.getByOperatorKind(BoundBinaryOperatorKind.MemberAccess),
+      tokens: node.tokens,
+      type: TypeSymbol.any,
+      right: createBoundExpression({ // add(expression)
+        kind: BoundKind.BoundBinaryExpression,
+        operator: BoundBinaryOperator.getByOperatorKind(BoundBinaryOperatorKind.MethodCall),
+        type: TypeSymbol.any,
+        tokens: [],
+        modifiers: Modifiers.TranspilerSync,
+        left: createBoundExpression({ // add(
+          kind: BoundKind.BoundNameExpression,
+          variable: new VariableSymbol('add', true, TypeSymbol.func),
+          modifiers: Modifiers.TranspilerSync,
+          type: TypeSymbol.func,
+          tokens: [],
+        }),
+        right: createBoundExpression({// expression)
+          kind: BoundKind.BoundCommaExpression,
+          type: TypeSymbol.any,
+          expressions: [
+            node.expression,
+          ],
+          tokens: node.expression.tokens,
+        })
+      }),
+      modifiers: 0,
+    })
+
+    return this.transformExpression(replacement);
   }
 
   private transformArrayLiteralMember(node: BoundExpression): BoundExpression {

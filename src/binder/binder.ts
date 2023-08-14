@@ -125,7 +125,7 @@ export class Binder {
     if (syntax === undefined) return [];
     switch (syntax.kind) {
       case SyntaxNodeKind.AssignmentExpressionSyntax:
-        return [syntax.identifier, syntax.operator, ...this.getTextSpan(syntax.expression)];
+        return [syntax.identifier, syntax.open, syntax.close, syntax.operator, ...this.getTextSpan(syntax.expression)].filter(Boolean);
       case SyntaxNodeKind.BinaryExpressionSyntax:
         return [...this.getTextSpan(syntax.left), syntax.operator, ...this.getTextSpan(syntax.right)];
       case SyntaxNodeKind.CommaExpressionSyntax:
@@ -345,7 +345,8 @@ export class Binder {
     }
 
     const tokens = this.getTextSpan(syntax);
-    return createBoundExpression({kind: BoundKind.BoundAssignmentExpression, expression, variable, type, tokens})
+    const isArray = Boolean(syntax.open && syntax.close);
+    return createBoundExpression({kind: BoundKind.BoundAssignmentExpression, expression, variable, type, tokens, isArray})
   }
 
   bindBinaryExpression(syntax: BinaryExpressionSyntax) {

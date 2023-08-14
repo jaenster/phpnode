@@ -3,7 +3,8 @@
   "dependencies": {
     "@jaenster/php-native": "file:./src/lib",
     "chalk": "^5.2.0",
-    "map-ext": "^0.1.4"
+    "map-ext": "^0.1.4",
+    "vlq": "^2.0.4"
   },
   "devDependencies": {
     "ts-node": "^10.9.1",

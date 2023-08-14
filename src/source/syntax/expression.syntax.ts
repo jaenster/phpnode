@@ -22,6 +22,8 @@ export type AssignmentExpressionSyntax = {
   identifier: SyntaxToken,
   operator: SyntaxToken,
   expression: ExpressionSyntax&SyntaxNode,
+  open?: SyntaxToken,
+  close?: SyntaxToken,
 }
 
 export type BinaryExpressionSyntax = {
