@@ -1,8 +1,10 @@
 import {TypeSymbol} from "../symbols/symbols.js";
 import {BoundExpression} from "./bound-expression.js";
 import {SyntaxKind} from "../source/syntax/syntax.kind.js";
+import {OperatorOrder} from "../source/syntax/syntax.facts.js";
 
 export enum BoundBinaryOperatorKind {
+  Assignment,
   Addition,
   Subtraction,
   Concatenation,
@@ -45,6 +47,7 @@ export class BoundBinaryOperator {
     public readonly leftType: TypeSymbol,
     public readonly rightType?: TypeSymbol,
     public readonly resultType?: TypeSymbol,
+    public readonly order: OperatorOrder = OperatorOrder.LeftToRight,
   ) {
 
     this.rightType ??= leftType;
@@ -59,7 +62,6 @@ export class BoundBinaryOperator {
   private static operator = [
     new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.int),
     new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.string, TypeSymbol.int, TypeSymbol.string),
-
 
     new BoundBinaryOperator(SyntaxKind.MinusToken, BoundBinaryOperatorKind.Subtraction, TypeSymbol.int),
     new BoundBinaryOperator(SyntaxKind.StarToken, BoundBinaryOperatorKind.Multiplication, TypeSymbol.int),
@@ -97,6 +99,8 @@ export class BoundBinaryOperator {
     new BoundBinaryOperator(SyntaxKind.ColonColonToken, BoundBinaryOperatorKind.StaticMemberAccess, TypeSymbol.any),
     this.memberCall,
     this.call,
+
+    new BoundBinaryOperator(SyntaxKind.EqualToken, BoundBinaryOperatorKind.Assignment, TypeSymbol.any, TypeSymbol.any, TypeSymbol.any, OperatorOrder.RightToLeft),
   ]
 
   static getByOperatorKind(kind: BoundBinaryOperatorKind, type: TypeSymbol = TypeSymbol.any) {

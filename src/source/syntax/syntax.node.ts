@@ -6,8 +6,6 @@ import {TextSpan} from "../../common/text-span.js";
 
 export enum SyntaxNodeKind {
   // Expressions
-
-  AssignmentExpressionSyntax,
   BinaryExpressionSyntax,
   CommaExpressionSyntax,
   EmptyExpressionSyntax,
@@ -29,10 +27,8 @@ export enum SyntaxNodeKind {
   BlockStatementSyntax,
   ExpressionStatementSyntax,
   ForStatementSyntax,
-  MethodStatementSyntax,
   SemiColonSyntax,
   IfStatementSyntax,
-  VariableStatementSyntax,
   WhileStatementSyntax,
   ReturnStatementSyntax,
   EchoStatementSyntax,

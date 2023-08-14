@@ -51,6 +51,7 @@ function escape(string: string) {
 
 const binaryOperators = {
   [BoundBinaryOperatorKind.Addition]: '+',
+  [BoundBinaryOperatorKind.Assignment]: '=',
   [BoundBinaryOperatorKind.MemberAccess]: '.',
   [BoundBinaryOperatorKind.StaticMemberAccess]: '.',
   [BoundBinaryOperatorKind.Nullish]: '??',

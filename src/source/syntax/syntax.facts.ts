@@ -4,6 +4,8 @@ const enum PrecedenceKind {
   None,
 
   // In theory here is a Comma operator, but its so low and special it's handled before other operators
+  Comma,
+  Assignment,
 
   // for array access [$foo->bar() => 5]
   FatArrow,
@@ -58,8 +60,26 @@ export function getUnaryOperatorPrecedence(kind: SyntaxKind, next: SyntaxKind) {
   }
 }
 
+export enum OperatorOrder {
+  None,
+  LeftToRight,
+  RightToLeft,
+}
+
+export function getOperatorOrder(kind: SyntaxKind): OperatorOrder {
+  if ( //
+    kind === SyntaxKind.EqualToken
+  ) {
+    return OperatorOrder.RightToLeft;
+  }
+  return OperatorOrder.LeftToRight;
+}
+
 export function getBinaryOperatorPrecedence(kind: SyntaxKind) {
   switch (kind) {
+    case SyntaxKind.EqualToken:
+      return PrecedenceKind.Assignment;
+
     case SyntaxKind.QuestionQuestionToken:
     case SyntaxKind.PipePipeToken:
       return PrecedenceKind.LogicalOr;

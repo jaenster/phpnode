@@ -44,7 +44,6 @@ import {BoundFile, BoundLabel, BoundParameter} from "./bound-special.js";
 import {MapExt} from "map-ext";
 import {
   ArrayLiteralExpressionSyntax,
-  AssignmentExpressionSyntax,
   BinaryExpressionSyntax,
   CommaExpressionSyntax,
   EmptyExpressionSyntax,
@@ -55,7 +54,12 @@ import {
   UnaryExpressionSyntax
 } from "../source/syntax/expression.syntax.js";
 import {BoundExpression} from "./bound-expression.js";
-import {BoundBinaryOperator, BoundUnaryOperator, BoundUnaryOperatorKind} from "./bound-operator.js";
+import {
+  BoundBinaryOperator,
+  BoundBinaryOperatorKind,
+  BoundUnaryOperator,
+  BoundUnaryOperatorKind
+} from "./bound-operator.js";
 import {TextSpan} from "../common/text-span.js";
 import {SyntaxKind} from "../source/syntax/syntax.kind.js";
 import {SyntaxToken} from "../source/lexer.js";
@@ -124,8 +128,6 @@ export class Binder {
   private getTextSpan(syntax: StatementSyntax | ExpressionSyntax | SpecialSyntax): SyntaxToken[] {
     if (syntax === undefined) return [];
     switch (syntax.kind) {
-      case SyntaxNodeKind.AssignmentExpressionSyntax:
-        return [syntax.identifier, syntax.open, syntax.close, syntax.operator, ...this.getTextSpan(syntax.expression)].filter(Boolean);
       case SyntaxNodeKind.BinaryExpressionSyntax:
         return [...this.getTextSpan(syntax.left), syntax.operator, ...this.getTextSpan(syntax.right)];
       case SyntaxNodeKind.CommaExpressionSyntax:
@@ -295,8 +297,6 @@ export class Binder {
         return this.bindEmptyExpression(expression)
       case SyntaxNodeKind.CommaExpressionSyntax:
         return this.bindCommaExpression(expression);
-      case SyntaxNodeKind.AssignmentExpressionSyntax:
-        return this.bindAssignmentExpression(expression);
       case SyntaxNodeKind.BinaryExpressionSyntax:
         return this.bindBinaryExpression(expression);
       case SyntaxNodeKind.NameExpressionSyntax:
@@ -320,35 +320,6 @@ export class Binder {
     return createBoundExpression({kind: BoundKind.BoundCommaExpression, expressions, type: last.type, tokens});
   }
 
-  bindAssignmentExpression(syntax: AssignmentExpressionSyntax): BoundExpression {
-    const name = syntax.identifier.text;
-    const expression = this.bindExpression(syntax.expression);
-    const type = expression.type;
-
-    // upsert / override variable
-    let [has, variable] = this.scope.tryLookup(name);
-    if (!has) {
-      // Variable is created here in the current scope
-      variable = new VariableSymbol(name, false, TypeSymbol.any);
-      this.scope.tryDeclare(variable);
-    }
-
-
-    if (variable.isReadonly) {
-      this.diagnostics.reportCannotAssign(syntax.operator.span, name)
-      return expression;
-    }
-
-    if (expression.type !== variable.type && variable.type !== TypeSymbol.any && expression.type !== TypeSymbol.any) {
-      this.diagnostics.reportCannotConvert(syntax.expression.span, expression.type, variable.type)
-      return expression;
-    }
-
-    const tokens = this.getTextSpan(syntax);
-    const isArray = Boolean(syntax.open && syntax.close);
-    return createBoundExpression({kind: BoundKind.BoundAssignmentExpression, expression, variable, type, tokens, isArray})
-  }
-
   bindBinaryExpression(syntax: BinaryExpressionSyntax) {
     const left = this.bindExpression(syntax.left);
     const right = this.bindExpression(syntax.right);
@@ -360,7 +331,6 @@ export class Binder {
 
     const operator = BoundBinaryOperator.bind(syntax.operator.kind, left, right);
     if (!operator) {
-
       // Function calls are different, as its left(right) and not left + right
       let span: TextSpan = syntax.operator.span;
       if (syntax.operator.kind === SyntaxKind.ParenOpenToken) {
@@ -374,6 +344,22 @@ export class Binder {
 
       this.diagnostics.reportUndefinedBinaryOperator(span, syntax.operator.text, left.type, right.type);
       return createBoundExpression({kind: BoundKind.BoundErrorExpression, type: TypeSymbol.error, tokens});
+    }
+
+    // Assignments create variables in php
+    if (operator.kind === BoundBinaryOperatorKind.Assignment) {
+      if (syntax.left.kind === SyntaxNodeKind.NameExpressionSyntax) {
+
+        const name = syntax.left.identifier.text;
+        // upsert / override variable
+        let [has, variable] = this.scope.tryLookup(name);
+        if (!has) {
+          // Variable is created here in the current scope
+          variable = new VariableSymbol(name, false, TypeSymbol.any);
+          this.scope.tryDeclare(variable);
+        }
+
+      }
     }
 
     return createBoundExpression({

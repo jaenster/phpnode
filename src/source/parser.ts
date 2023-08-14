@@ -17,18 +17,19 @@ import {
   SyntaxNodeKind
 } from "./syntax/syntax.node.js";
 import {ElseClause, FileSyntax, ParametersSyntax, TypeClause} from "./syntax/special.syntax.js";
-import {AssignmentExpressionSyntax, ExpressionSyntax} from "./syntax/expression.syntax.js";
+import {ExpressionSyntax} from "./syntax/expression.syntax.js";
 import {
   canBePostFixOperator,
   getBinaryOperatorPrecedence,
+  getOperatorOrder,
   getUnaryOperatorPrecedence,
   ModifierMapping,
   Modifiers,
+  OperatorOrder,
   supportsOnlyNameExpression
 } from "./syntax/syntax.facts.js";
 import {TypeSymbol} from "../symbols/symbols.js";
 import {SyntaxKind} from "./syntax/syntax.kind.js";
-import {PickByType} from "../types.js";
 
 
 export class Parser {
@@ -233,7 +234,7 @@ export class Parser {
 
   // Expressions
   private parseSingleExpression() {
-    return this.parseAssignmentExpression();
+    return this.parseBinaryExpression();
   }
 
   private parseExpression(): ExpressionSyntax & SyntaxNode {
@@ -274,41 +275,6 @@ export class Parser {
       this.nextToken();
     }
     return ret;
-  }
-
-
-  private parseAssignmentExpression(): ExpressionSyntax & SyntaxNode {
-    const sequence = this.isSequence<PickByType<AssignmentExpressionSyntax, SyntaxToken>>(
-      [ // $foo = expression
-        // $foo [] = expression
-        ['identifier', SyntaxKind.VariableToken],
-        ['open', SyntaxKind.SquareOpenToken, false],
-        ['close', SyntaxKind.SquareCloseToken, false],
-        ['operator', [SyntaxKind.EqualToken]],
-      ],
-    );
-
-    if (!sequence) {
-      return this.parseBinaryExpression();
-    }
-
-    const {
-      identifier,
-      open,
-      close,
-      operator,
-    } = sequence;
-    const expression = this.parseAssignmentExpression();
-
-    // ToDo; write right to left behavior for assignment
-    return createExpressionNode({
-      kind: SyntaxNodeKind.AssignmentExpressionSyntax,
-      identifier,
-      operator,
-      expression,
-      open,
-      close,
-    })
   }
 
   private parseUnaryExpression(parentPrecedence: number = 0): ExpressionSyntax & SyntaxNode {
@@ -355,24 +321,32 @@ export class Parser {
     let left: ExpressionSyntax & SyntaxNode = this.parseUnaryExpression();
 
     while (true) {
-      const precedence = getBinaryOperatorPrecedence(this.current().kind)
-      if (precedence === 0 || precedence <= parentPrecedence) {
+      const currentOperatorKind = this.current().kind;
+      const precedence = getBinaryOperatorPrecedence(currentOperatorKind)
+      const order = getOperatorOrder(currentOperatorKind);
+
+      if (
+        order === OperatorOrder.LeftToRight && (precedence === 0 || precedence <= parentPrecedence)
+        || order === OperatorOrder.RightToLeft && (precedence === 0 || precedence < parentPrecedence)
+      ) {
         break;
       }
 
+      let right: ExpressionSyntax&SyntaxNode;
+      let operator: SyntaxToken;
       if (this.current().kind === SyntaxKind.ParenOpenToken) {
         // Function call is a different animal, as its left(right)
         // where other operators are left + right
         // use current and not next or match, as the "(" is also needed for the paren expression
         // Please note that multiple arguments will become parsed by the comma expression syntax
-        const operator = this.current();
-        const right = this.parseParenExpression();
-        left = createExpressionNode({kind: SyntaxNodeKind.BinaryExpressionSyntax, left, operator, right})
+        operator = this.current();
+        right = this.parseParenExpression();
       } else {
-        const operator = this.nextToken();
-        const right = this.parseBinaryExpression(precedence);
-        left = createExpressionNode({kind: SyntaxNodeKind.BinaryExpressionSyntax, left, operator, right});
+        operator = this.nextToken();
+        right = this.parseBinaryExpression(precedence);
       }
+
+      left = createExpressionNode({kind: SyntaxNodeKind.BinaryExpressionSyntax, left, operator, right})
     }
 
     return left;

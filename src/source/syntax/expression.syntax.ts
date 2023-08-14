@@ -6,7 +6,6 @@ import {SyntaxToken} from "../lexer.js";
 
 
 export type ExpressionSyntax = (
-  | AssignmentExpressionSyntax
   | BinaryExpressionSyntax
   | CommaExpressionSyntax
   | EmptyExpressionSyntax
@@ -16,15 +15,6 @@ export type ExpressionSyntax = (
   | UnaryExpressionSyntax
   | ArrayLiteralExpressionSyntax
 )
-
-export type AssignmentExpressionSyntax = {
-  kind: SyntaxNodeKind.AssignmentExpressionSyntax,
-  identifier: SyntaxToken,
-  operator: SyntaxToken,
-  expression: ExpressionSyntax&SyntaxNode,
-  open?: SyntaxToken,
-  close?: SyntaxToken,
-}
 
 export type BinaryExpressionSyntax = {
   kind: SyntaxNodeKind.BinaryExpressionSyntax,
